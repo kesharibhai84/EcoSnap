@@ -8,7 +8,7 @@ const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 // Analyze product using Gemini API
 async function analyzeProduct(imageUrl) {
   try {
-    const model = genAI.getGenerativeModel({ model: "gemini-pro-vision" });
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
     
     // Fetch image data
     const imageResponse = await axios.get(imageUrl, { responseType: 'arraybuffer' });

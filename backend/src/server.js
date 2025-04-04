@@ -18,9 +18,8 @@ mongoose.connect(process.env.MONGODB_URI)
   .then(() => console.log('Connected to MongoDB'))
   .catch((err) => console.error('MongoDB connection error:', err));
 
-// Routes (to be implemented)
+// Routes
 app.use('/api/products', require('./routes/productRoutes'));
-app.use('/api/analysis', require('./routes/analysisRoutes'));
 
 // Error handling middleware
 app.use((err, req, res, next) => {
