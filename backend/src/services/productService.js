@@ -14,9 +14,19 @@ async function analyzeProduct(imageUrl) {
     const imageResponse = await axios.get(imageUrl, { responseType: 'arraybuffer' });
     const imageData = Buffer.from(imageResponse.data);
     
-    // Generate content from image
+    // Generate content from image with a more structured prompt
     const result = await model.generateContent([
-      "Analyze this product image and provide the following information in JSON format: name, ingredients list, packaging materials, and whether the packaging is recyclable.",
+      {
+        text: `You are a product analysis AI. Analyze the given product image and return ONLY a JSON object with the following structure, no other text:
+{
+  "name": "product name",
+  "ingredients": ["ingredient1", "ingredient2", ...],
+  "packaging": {
+    "materials": ["material1", "material2", ...],
+    "recyclable": true/false
+  }
+}`
+      },
       {
         inlineData: {
           mimeType: "image/jpeg",
@@ -26,10 +36,22 @@ async function analyzeProduct(imageUrl) {
     ]);
     
     const response = await result.response;
-    const text = response.text();
-    return JSON.parse(text);
+    const text = response.text().trim();
+    
+    // Ensure we have valid JSON by extracting it from the response
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+      throw new Error('Invalid response format from Gemini API');
+    }
+    
+    const jsonStr = jsonMatch[0];
+    return JSON.parse(jsonStr);
   } catch (error) {
     console.error('Error analyzing product:', error);
+    if (error instanceof SyntaxError) {
+      console.error('Raw response:', text);
+      throw new Error('Failed to parse product analysis response');
+    }
     throw error;
   }
 }
@@ -62,14 +84,14 @@ async function findSimilarProducts(productName, price) {
 // Calculate carbon footprint using Gemini API
 async function calculateCarbonFootprint(productAnalysis) {
   try {
-    const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
     
     const prompt = `Calculate the carbon footprint score (0-100) for a product with the following details:
     Ingredients: ${productAnalysis.ingredients.join(', ')}
     Packaging: ${productAnalysis.packaging.materials.join(', ')}
     Recyclable: ${productAnalysis.packaging.recyclable}
     
-    Provide the response in JSON format with the following structure:
+    Provide the response in JSON format with the following structure, no other text:
     {
       "score": number,
       "details": {
@@ -80,12 +102,29 @@ async function calculateCarbonFootprint(productAnalysis) {
       }
     }`;
     
-    const result = await model.generateContent(prompt);
+    const result = await model.generateContent([
+      {
+        text: prompt
+      }
+    ]);
+    
     const response = await result.response;
-    const text = response.text();
-    return JSON.parse(text);
+    const text = response.text().trim();
+    
+    // Ensure we have valid JSON by extracting it from the response
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+      throw new Error('Invalid response format from Gemini API');
+    }
+    
+    const jsonStr = jsonMatch[0];
+    return JSON.parse(jsonStr);
   } catch (error) {
     console.error('Error calculating carbon footprint:', error);
+    if (error instanceof SyntaxError) {
+      console.error('Raw response:', text);
+      throw new Error('Failed to parse carbon footprint response');
+    }
     throw error;
   }
 }
