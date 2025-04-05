@@ -18,6 +18,7 @@ import ThreeScene from '../components/ThreeScene';
 const Home = () => {
   const navigate = useNavigate();
   const theme = useTheme();
+  const isDarkMode = theme.palette.mode === 'dark';
 
   const features = [
     {
@@ -38,9 +39,17 @@ const Home = () => {
   ];
 
   return (
-    <Box sx={{ position: 'relative', minHeight: '100vh', overflow: 'hidden' }}>
+    <Box sx={{ position: 'relative', minHeight: '100vh', overflow: 'hidden', background: '#0a0a0a' }}>
       {/* 3D Background Scene */}
-      <Box sx={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', zIndex: 0 }}>
+      <Box sx={{ 
+        position: 'fixed', 
+        top: 0, 
+        left: 0, 
+        width: '100%', 
+        height: '100%', 
+        zIndex: 0,
+        background: 'linear-gradient(to bottom, #000000, #0a0a0a)'
+      }}>
         <ThreeScene />
       </Box>
 
@@ -76,6 +85,10 @@ const Home = () => {
                     fontWeight: 'bold',
                     textShadow: '2px 2px 4px rgba(0,0,0,0.5)',
                     animation: 'fadeIn 1s ease-in',
+                    background: 'linear-gradient(45deg, #ffffff, #4CAF50)',
+                    WebkitBackgroundClip: 'text',
+                    WebkitTextFillColor: 'transparent',
+                    letterSpacing: '0.5px',
                   }}
                 >
                   Make Eco-Friendly Choices
@@ -87,6 +100,9 @@ const Home = () => {
                     textShadow: '1px 1px 2px rgba(0,0,0,0.5)',
                     animation: 'fadeIn 1s ease-in 0.5s',
                     animationFillMode: 'both',
+                    color: '#e0e0e0',
+                    fontWeight: 300,
+                    letterSpacing: '0.5px',
                   }}
                 >
                   Analyze products, compare alternatives, and reduce your environmental impact with EcoSnap.
@@ -99,11 +115,18 @@ const Home = () => {
                     mt: 2,
                     animation: 'fadeIn 1s ease-in 1s',
                     animationFillMode: 'both',
-                    backgroundColor: '#4CAF50',
+                    background: 'linear-gradient(45deg, #4CAF50, #45a049)',
+                    color: 'white',
+                    padding: '12px 24px',
+                    fontSize: '1.1rem',
+                    borderRadius: '30px',
+                    boxShadow: '0 4px 15px rgba(76, 175, 80, 0.3)',
+                    textTransform: 'none',
                     '&:hover': {
-                      backgroundColor: '#45a049',
+                      background: 'linear-gradient(45deg, #45a049, #4CAF50)',
                       transform: 'scale(1.05)',
-                      transition: 'transform 0.3s ease-in-out',
+                      transition: 'all 0.3s ease-in-out',
+                      boxShadow: '0 6px 20px rgba(76, 175, 80, 0.4)',
                     },
                   }}
                 >
@@ -118,8 +141,10 @@ const Home = () => {
         <Box
           sx={{
             position: 'relative',
-            background: 'rgba(255, 255, 255, 0.9)',
+            background: isDarkMode ? 'rgba(20, 20, 20, 0.8)' : 'rgba(255, 255, 255, 0.95)',
             py: 8,
+            backdropFilter: 'blur(10px)',
+            borderTop: '1px solid rgba(255, 255, 255, 0.1)',
           }}
         >
           <Container maxWidth="lg">
@@ -129,9 +154,11 @@ const Home = () => {
               align="center"
               gutterBottom
               sx={{
-                color: theme.palette.primary.main,
+                color: '#4CAF50',
                 fontWeight: 'bold',
                 mb: 4,
+                textShadow: '2px 2px 4px rgba(0,0,0,0.3)',
+                letterSpacing: '1px',
               }}
             >
               Features
@@ -142,10 +169,15 @@ const Home = () => {
                   <Card
                     sx={{
                       height: '100%',
-                      transition: 'transform 0.3s ease-in-out',
+                      transition: 'all 0.3s ease-in-out',
+                      background: isDarkMode ? 'rgba(30, 30, 30, 0.7)' : 'rgba(255, 255, 255, 0.9)',
+                      backdropFilter: 'blur(10px)',
+                      border: isDarkMode ? '1px solid rgba(255, 255, 255, 0.1)' : '1px solid rgba(0, 0, 0, 0.1)',
                       '&:hover': {
-                        transform: 'translateY(-10px)',
-                        boxShadow: theme.shadows[10],
+                        transform: 'translateY(-10px) scale(1.02)',
+                        boxShadow: '0 10px 30px rgba(76, 175, 80, 0.2)',
+                        background: isDarkMode ? 'rgba(40, 40, 40, 0.8)' : 'rgba(255, 255, 255, 1)',
+                        border: '1px solid rgba(76, 175, 80, 0.3)',
                       },
                     }}
                   >
@@ -155,7 +187,15 @@ const Home = () => {
                           display: 'flex',
                           justifyContent: 'center',
                           mb: 2,
-                          color: theme.palette.primary.main,
+                          color: '#4CAF50',
+                          '& svg': {
+                            fontSize: '3rem',
+                            transition: 'transform 0.3s ease-in-out',
+                          },
+                          '&:hover svg': {
+                            transform: 'scale(1.2) rotate(10deg)',
+                            color: '#45a049',
+                          },
                         }}
                       >
                         {feature.icon}
@@ -165,11 +205,22 @@ const Home = () => {
                         component="h3"
                         align="center"
                         gutterBottom
-                        sx={{ fontWeight: 'bold' }}
+                        sx={{ 
+                          fontWeight: 'bold',
+                          color: isDarkMode ? '#ffffff' : '#333333',
+                          letterSpacing: '0.5px',
+                        }}
                       >
                         {feature.title}
                       </Typography>
-                      <Typography align="center" color="text.secondary">
+                      <Typography 
+                        align="center" 
+                        sx={{
+                          color: isDarkMode ? '#b0b0b0' : '#666666',
+                          lineHeight: 1.6,
+                          letterSpacing: '0.3px',
+                        }}
+                      >
                         {feature.description}
                       </Typography>
                     </CardContent>
