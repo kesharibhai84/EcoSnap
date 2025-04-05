@@ -30,6 +30,7 @@ router.post('/analyze', async (req, res) => {
     
     await product.save();
     
+    
     res.status(201).json(product);
   } catch (error) {
     console.error('Error analyzing product:', error);
