@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link as RouterLink, useNavigate } from 'react-router-dom';
+import { Link as RouterLink, useNavigate, useLocation } from 'react-router-dom';
 import {
   Container,
   Box,
@@ -26,6 +26,7 @@ import '../styles/animations.css';
 
 const Login = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const theme = useTheme();
   const { darkMode } = useCustomTheme();
   const [email, setEmail] = useState('');
@@ -67,7 +68,9 @@ const Login = () => {
       
       window.dispatchEvent(new Event('auth-change'));
       
-      navigate('/');
+      // Redirect to the requested page or home
+      const from = location.state?.from?.pathname || '/';
+      navigate(from, { replace: true });
     } catch (err) {
       let errorMessage = 'Login failed. Please check your credentials.';
       

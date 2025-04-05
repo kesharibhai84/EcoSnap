@@ -11,6 +11,7 @@ import Signup from './pages/Signup';
 import Profile from './pages/Profile';
 import AuthTest from './pages/AuthTest';
 import { ThemeProvider } from './contexts/ThemeContext';
+import ProtectedRoute from './components/ProtectedRoute';
 import './styles/animations.css';
 // Remove the import of 3dEffects.css for now until we create it
 // import './styles/3dEffects.css';
@@ -23,7 +24,11 @@ function App() {
         <Navbar />
         <Routes>
           <Route path="/" element={<Home />} />
-          <Route path="/analyze" element={<ProductAnalysis />} />
+          <Route path="/analyze" element={
+            <ProtectedRoute>
+              <ProductAnalysis />
+            </ProtectedRoute>
+          } />
           <Route path="/products" element={<ProductList />} />
           <Route path="/products/:id" element={<ProductDetails />} />
           <Route path="/login" element={<Login />} />
