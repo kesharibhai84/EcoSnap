@@ -14,6 +14,7 @@ import SearchIcon from '@mui/icons-material/Search';
 import CompareIcon from '@mui/icons-material/Compare';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import ThreeScene from '../components/ThreeScene';
+import '../styles/animations.css';
 
 const Home = () => {
   const navigate = useNavigate();
@@ -39,7 +40,12 @@ const Home = () => {
   ];
 
   return (
-    <Box sx={{ position: 'relative', minHeight: '100vh', overflow: 'hidden', background: '#0a0a0a' }}>
+    <Box sx={{ 
+      position: 'relative', 
+      minHeight: '100vh', 
+      overflow: 'hidden', 
+      background: '#0a0a0a',
+    }}>
       {/* 3D Background Scene */}
       <Box sx={{ 
         position: 'fixed', 
@@ -81,10 +87,10 @@ const Home = () => {
                   variant="h2"
                   component="h1"
                   gutterBottom
+                  className="fade-in"
                   sx={{
                     fontWeight: 'bold',
                     textShadow: '2px 2px 4px rgba(0,0,0,0.5)',
-                    animation: 'fadeIn 1s ease-in',
                     background: 'linear-gradient(45deg, #ffffff, #4CAF50)',
                     WebkitBackgroundClip: 'text',
                     WebkitTextFillColor: 'transparent',
@@ -96,10 +102,9 @@ const Home = () => {
                 <Typography
                   variant="h5"
                   paragraph
+                  className="fade-in-delay-1"
                   sx={{
                     textShadow: '1px 1px 2px rgba(0,0,0,0.5)',
-                    animation: 'fadeIn 1s ease-in 0.5s',
-                    animationFillMode: 'both',
                     color: '#e0e0e0',
                     fontWeight: 300,
                     letterSpacing: '0.5px',
@@ -111,10 +116,9 @@ const Home = () => {
                   variant="contained"
                   size="large"
                   onClick={() => navigate('/analyze')}
+                  className="fade-in-delay-2"
                   sx={{
                     mt: 2,
-                    animation: 'fadeIn 1s ease-in 1s',
-                    animationFillMode: 'both',
                     background: 'linear-gradient(45deg, #4CAF50, #45a049)',
                     color: 'white',
                     padding: '12px 24px',
@@ -153,6 +157,7 @@ const Home = () => {
               component="h2"
               align="center"
               gutterBottom
+              className="fade-in"
               sx={{
                 color: '#4CAF50',
                 fontWeight: 'bold',
@@ -167,6 +172,7 @@ const Home = () => {
               {features.map((feature, index) => (
                 <Grid item xs={12} md={4} key={index}>
                   <Card
+                    className={`fade-in-delay-${index + 1}`}
                     sx={{
                       height: '100%',
                       transition: 'all 0.3s ease-in-out',
@@ -231,22 +237,6 @@ const Home = () => {
           </Container>
         </Box>
       </Box>
-
-      {/* Add global styles for animations */}
-      <style>
-        {`
-          @keyframes fadeIn {
-            from {
-              opacity: 0;
-              transform: translateY(20px);
-            }
-            to {
-              opacity: 1;
-              transform: translateY(0);
-            }
-          }
-        `}
-      </style>
     </Box>
   );
 };

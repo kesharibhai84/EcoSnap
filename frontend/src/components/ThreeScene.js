@@ -14,7 +14,29 @@ const ThreeScene = () => {
   useEffect(() => {
     if (!mountRef.current) return;
 
-    // Scene setup
+    // Cleanup function
+    const cleanup = () => {
+      if (animationFrameIdRef.current) {
+        cancelAnimationFrame(animationFrameIdRef.current);
+      }
+      if (mountRef.current && mountRef.current.firstChild) {
+        mountRef.current.removeChild(mountRef.current.firstChild);
+      }
+      if (sceneRef.current) {
+        sceneRef.current.traverse((object) => {
+          if (object.geometry) object.geometry.dispose();
+          if (object.material) {
+            if (Array.isArray(object.material)) {
+              object.material.forEach(material => material.dispose());
+            } else {
+              object.material.dispose();
+            }
+          }
+        });
+      }
+    };
+
+    // Initial setup
     const scene = new THREE.Scene();
     sceneRef.current = scene;
     
@@ -176,44 +198,8 @@ const ThreeScene = () => {
 
     window.addEventListener('resize', handleResize);
 
-    // Cleanup
-    return () => {
-      window.removeEventListener('resize', handleResize);
-      
-      if (animationFrameIdRef.current) {
-        cancelAnimationFrame(animationFrameIdRef.current);
-      }
-
-      if (mountRef.current && renderer.domElement) {
-        mountRef.current.removeChild(renderer.domElement);
-      }
-
-      // Dispose of geometries and materials
-      if (sceneRef.current) {
-        sceneRef.current.traverse((object) => {
-          if (object.geometry) object.geometry.dispose();
-          if (object.material) {
-            if (Array.isArray(object.material)) {
-              object.material.forEach(material => material.dispose());
-            } else {
-              object.material.dispose();
-            }
-          }
-        });
-      }
-
-      // Dispose of renderer
-      if (rendererRef.current) {
-        rendererRef.current.dispose();
-      }
-
-      // Clear refs
-      sceneRef.current = null;
-      rendererRef.current = null;
-      particlesRef.current = null;
-      earthRef.current = null;
-      ringsRef.current = null;
-    };
+    // Return cleanup function
+    return cleanup;
   }, []);
 
   return <div ref={mountRef} style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', zIndex: 0 }} />;

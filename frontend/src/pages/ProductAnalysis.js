@@ -18,6 +18,11 @@ import {
   ListItemIcon,
   ListItemText,
   CardActions,
+  CardMedia,
+  useTheme,
+  Rating,
+  Tooltip,
+  IconButton
 } from '@mui/material';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import axios from 'axios';
@@ -25,8 +30,13 @@ import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import FiberManualRecordIcon from '@mui/icons-material/FiberManualRecord';
 import RecyclingIcon from '@mui/icons-material/Recycling';
 import Slider from '@mui/material/Slider';
+import ProductChatBot from '../components/ProductChatBot';
+import InfoIcon from '@mui/icons-material/Info';
+import LocalOfferIcon from '@mui/icons-material/LocalOffer';
+import NatureIcon from '@mui/icons-material/Nature';
 
 const ProductAnalysis = () => {
+  const theme = useTheme();
   const [image, setImage] = useState(null);
   const [price, setPrice] = useState('');
   const [loading, setLoading] = useState(false);
@@ -34,7 +44,7 @@ const ProductAnalysis = () => {
   const [analysis, setAnalysis] = useState(null);
   const [priceRange, setPriceRange] = useState([0, 0]);
   const [filteredProducts, setFilteredProducts] = useState([]);
-  const [maxPriceRange, setMaxPriceRange] = useState(5000); // Default max range
+  const [maxPriceRange, setMaxPriceRange] = useState(5000);
 
   const handleImageUpload = (event) => {
     const file = event.target.files[0];
@@ -118,407 +128,499 @@ const ProductAnalysis = () => {
 
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
-      <Typography variant="h4" component="h1" gutterBottom>
+      <Typography 
+        variant="h4" 
+        component="h1" 
+        gutterBottom
+        sx={{ 
+          color: theme.palette.mode === 'dark' ? 'primary.light' : 'text.primary'
+        }}
+      >
         Product Analysis
       </Typography>
 
-        <Box sx={{ mb: 4 }}>
-          <input
-            accept="image/*"
-            style={{ display: 'none' }}
-            id="image-upload"
-            type="file"
-            onChange={handleImageUpload}
-          />
-          <label htmlFor="image-upload">
-            <Button
-              variant="contained"
-              component="span"
-              startIcon={<CloudUploadIcon />}
-              sx={{ mb: 2 }}
-            >
-              Upload Product Image
-            </Button>
-          </label>
-
-          {image && (
-            <Box sx={{ mt: 2 }}>
-              <img
-                src={image}
-                alt="Product"
-              style={{ maxWidth: '100%', maxHeight: '300px' }}
-              />
-            </Box>
-          )}
-
-          <TextField
-            fullWidth
-            label="Product Price"
-            type="number"
-            value={price}
-            onChange={(e) => setPrice(e.target.value)}
-            sx={{ mt: 2 }}
-          />
-
+      <Box sx={{ mb: 4 }}>
+        <input
+          accept="image/*"
+          style={{ display: 'none' }}
+          id="image-upload"
+          type="file"
+          onChange={handleImageUpload}
+        />
+        <label htmlFor="image-upload">
           <Button
             variant="contained"
-            color="primary"
-            onClick={handleSubmit}
-            disabled={loading || !image || !price}
-            sx={{ mt: 2 }}
+            component="span"
+            startIcon={<CloudUploadIcon />}
+            sx={{ 
+              mb: 2,
+              bgcolor: theme.palette.mode === 'dark' ? 'primary.dark' : 'primary.main',
+              '&:hover': {
+                bgcolor: theme.palette.mode === 'dark' ? 'primary.main' : 'primary.dark'
+              }
+            }}
           >
-            {loading ? <CircularProgress size={24} /> : 'Analyze Product'}
+            Upload Product Image
           </Button>
+        </label>
 
-          {error && (
-            <Alert severity="error" sx={{ mt: 2 }}>
-              {error}
-            </Alert>
-          )}
-        </Box>
+        {image && (
+          <Box sx={{ 
+            mt: 2,
+            borderRadius: 2,
+            overflow: 'hidden',
+            boxShadow: theme.shadows[2]
+          }}>
+            <img
+              src={image}
+              alt="Product"
+              style={{ 
+                maxWidth: '100%', 
+                maxHeight: '300px', 
+                display: 'block',
+                margin: '0 auto'
+              }}
+            />
+          </Box>
+        )}
+
+        <TextField
+          fullWidth
+          label="Product Price"
+          type="number"
+          value={price}
+          onChange={(e) => setPrice(e.target.value)}
+          sx={{ 
+            mt: 2,
+            '& .MuiOutlinedInput-root': {
+              '& fieldset': {
+                borderColor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.23)' : 'rgba(0, 0, 0, 0.23)',
+              },
+              '&:hover fieldset': {
+                borderColor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.5)' : 'rgba(0, 0, 0, 0.5)',
+              },
+            },
+          }}
+        />
+
+        <Button
+          variant="contained"
+          color="primary"
+          onClick={handleSubmit}
+          disabled={loading || !image || !price}
+          sx={{ 
+            mt: 2,
+            bgcolor: theme.palette.mode === 'dark' ? 'primary.dark' : 'primary.main',
+            '&:hover': {
+              bgcolor: theme.palette.mode === 'dark' ? 'primary.main' : 'primary.dark'
+            }
+          }}
+        >
+          {loading ? <CircularProgress size={24} /> : 'Analyze Product'}
+        </Button>
+
+        {error && (
+          <Alert 
+            severity="error" 
+            sx={{ 
+              mt: 2,
+              bgcolor: theme.palette.mode === 'dark' ? 'error.dark' : 'error.light',
+              color: theme.palette.mode === 'dark' ? 'error.light' : 'error.dark'
+            }}
+          >
+            {error}
+          </Alert>
+        )}
+      </Box>
 
       {analysis && (
-          <Grid container spacing={3}>
+        <Grid container spacing={3}>
+          {/* Product Details Card */}
           <Grid item xs={12} md={6}>
-            <Card>
-                <CardContent>
-                <Typography variant="h6" gutterBottom>
-                  Product Details
+            <Card sx={{ 
+              height: '100%', 
+              display: 'flex', 
+              flexDirection: 'column',
+              bgcolor: theme.palette.mode === 'dark' ? 'background.default' : 'background.paper',
+              border: theme.palette.mode === 'dark' ? '1px solid rgba(255, 255, 255, 0.12)' : 'none'
+            }}>
+              <CardContent sx={{ 
+                flexGrow: 1,
+                bgcolor: theme.palette.mode === 'dark' ? 'background.default' : 'background.paper'
+              }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                  <InfoIcon color="primary" sx={{ mr: 1 }} />
+                  <Typography variant="h6" sx={{ color: theme.palette.mode === 'dark' ? 'primary.light' : 'text.primary' }}>
+                    Product Details
                   </Typography>
-                <Typography>Name: {analysis.name}</Typography>
-                <Typography>Price: ${analysis.price}</Typography>
-                <Typography variant="h6" sx={{ mt: 2 }} gutterBottom>
-                    Ingredients
+                </Box>
+                <Typography variant="subtitle1" gutterBottom sx={{ color: theme.palette.mode === 'dark' ? 'text.primary' : 'text.primary' }}>
+                  {analysis.name || 'Product Name'}
+                </Typography>
+                <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                  <LocalOfferIcon sx={{ mr: 1, color: 'primary.main' }} />
+                  <Typography sx={{ color: theme.palette.mode === 'dark' ? 'text.secondary' : 'text.primary' }}>
+                    Price: ${analysis.price || '0'}
                   </Typography>
-                <ul>
-                  {analysis.ingredients.map((ingredient, index) => (
-                    <li key={index}>{ingredient}</li>
-                    ))}
-                  </ul>
+                </Box>
+                <Typography variant="subtitle2" gutterBottom sx={{ color: theme.palette.mode === 'dark' ? 'text.secondary' : 'text.primary' }}>
+                  Ingredients
+                </Typography>
+                <List dense>
+                  {analysis.ingredients && analysis.ingredients.length > 0 ? (
+                    analysis.ingredients.map((ingredient, index) => (
+                      <ListItem key={index} sx={{ py: 0.5 }}>
+                        <ListItemIcon sx={{ minWidth: 32 }}>
+                          <FiberManualRecordIcon sx={{ 
+                            fontSize: '0.5rem',
+                            color: theme.palette.mode === 'dark' ? 'primary.light' : 'primary.main'
+                          }} />
+                        </ListItemIcon>
+                        <ListItemText 
+                          primary={ingredient}
+                          sx={{ color: theme.palette.mode === 'dark' ? 'text.secondary' : 'text.primary' }}
+                        />
+                      </ListItem>
+                    ))
+                  ) : (
+                    <Typography variant="body2" color="text.secondary">
+                      No ingredients available
+                    </Typography>
+                  )}
+                </List>
               </CardContent>
             </Card>
           </Grid>
 
+          {/* Environmental Impact Card */}
           <Grid item xs={12} md={6}>
-            <Card>
-              <CardContent>
-                <Typography variant="h6" gutterBottom>
-                  Environmental Impact
+            <Card sx={{ 
+              height: '100%', 
+              display: 'flex', 
+              flexDirection: 'column',
+              bgcolor: theme.palette.mode === 'dark' ? 'background.default' : 'background.paper',
+              border: theme.palette.mode === 'dark' ? '1px solid rgba(255, 255, 255, 0.12)' : 'none'
+            }}>
+              <CardContent sx={{ 
+                flexGrow: 1,
+                bgcolor: theme.palette.mode === 'dark' ? 'background.default' : 'background.paper'
+              }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                  <NatureIcon color="primary" sx={{ mr: 1 }} />
+                  <Typography variant="h6" sx={{ color: theme.palette.mode === 'dark' ? 'primary.light' : 'text.primary' }}>
+                    Environmental Impact
                   </Typography>
-                <Typography variant="h4" color="primary" gutterBottom>
-                  Score: {analysis.carbonFootprint.score}/100
+                </Box>
+                <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
+                  <Typography variant="h4" color="primary" sx={{ mr: 2 }}>
+                    {analysis.carbonFootprint?.score || 0}/100
                   </Typography>
-                <Typography variant="h6" sx={{ mt: 2 }} gutterBottom>
-                  Details
-                  </Typography>
-                <Typography variant="body1">
-                  <strong>Manufacturing Impact:</strong> {
-                    typeof analysis.carbonFootprint.details.manufacturing === 'object'
-                      ? analysis.carbonFootprint.details.manufacturing.score 
-                      : analysis.carbonFootprint.details.manufacturing
-                  }/100
-                  {analysis.carbonFootprint.details.manufacturing.explanation && (
-                    <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-                      {analysis.carbonFootprint.details.manufacturing.explanation}
-                    </Typography>
-                  )}
-                </Typography>
+                  <Rating 
+                    value={(analysis.carbonFootprint?.score || 0) / 20} 
+                    readOnly 
+                    precision={0.5}
+                    sx={{ 
+                      color: theme.palette.mode === 'dark' ? 'primary.light' : 'primary.main',
+                      '& .MuiRating-iconEmpty': {
+                        color: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.3)' : 'rgba(0, 0, 0, 0.3)'
+                      }
+                    }}
+                  />
+                </Box>
+                
+                <Accordion 
+                  defaultExpanded 
+                  sx={{ 
+                    bgcolor: 'transparent',
+                    boxShadow: 'none',
+                    '&:before': { display: 'none' },
+                    border: theme.palette.mode === 'dark' ? '1px solid rgba(255, 255, 255, 0.12)' : '1px solid rgba(0, 0, 0, 0.12)',
+                    borderRadius: 1
+                  }}
+                >
+                  <AccordionSummary 
+                    expandIcon={<ExpandMoreIcon />}
+                    sx={{
+                      color: theme.palette.mode === 'dark' ? 'text.secondary' : 'text.primary'
+                    }}
+                  >
+                    <Typography variant="subtitle2">Impact Details</Typography>
+                  </AccordionSummary>
+                  <AccordionDetails>
+                    <Box sx={{ mb: 2 }}>
+                      <Typography variant="body2" color="text.secondary">
+                        Manufacturing Impact
+                      </Typography>
+                      <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                        <Slider
+                          value={analysis.carbonFootprint?.details?.manufacturing?.score || 0}
+                          disabled
+                          sx={{ 
+                            mx: 2, 
+                            flexGrow: 1,
+                            color: theme.palette.mode === 'dark' ? 'primary.light' : 'primary.main',
+                            '& .MuiSlider-track': {
+                              backgroundColor: theme.palette.mode === 'dark' ? 'primary.light' : 'primary.main'
+                            },
+                            '& .MuiSlider-rail': {
+                              backgroundColor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.2)'
+                            }
+                          }}
+                        />
+                        <Typography variant="body2" sx={{ color: theme.palette.mode === 'dark' ? 'text.secondary' : 'text.primary' }}>
+                          {analysis.carbonFootprint?.details?.manufacturing?.score || 0}/100
+                        </Typography>
+                      </Box>
+                    </Box>
 
-                <Typography variant="body1" sx={{ mt: 1 }}>
-                  <strong>Transportation Impact:</strong> {
-                    typeof analysis.carbonFootprint.details.transportation === 'object'
-                      ? analysis.carbonFootprint.details.transportation.score 
-                      : analysis.carbonFootprint.details.transportation
-                  }/100
-                  {analysis.carbonFootprint.details.transportation.explanation && (
-                    <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-                      {analysis.carbonFootprint.details.transportation.explanation}
-                    </Typography>
-                  )}
-                </Typography>
+                    <Box sx={{ mb: 2 }}>
+                      <Typography variant="body2" color="text.secondary">
+                        Transportation Impact
+                      </Typography>
+                      <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                        <Slider
+                          value={analysis.carbonFootprint?.details?.transportation?.score || 0}
+                          disabled
+                          sx={{ mx: 2, flexGrow: 1 }}
+                        />
+                        <Typography variant="body2">
+                          {analysis.carbonFootprint?.details?.transportation?.score || 0}/100
+                        </Typography>
+                      </Box>
+                    </Box>
 
-                <Typography variant="body1" sx={{ mt: 1 }}>
-                  <strong>Packaging Impact:</strong> {
-                    typeof analysis.carbonFootprint.details.packaging === 'object'
-                      ? analysis.carbonFootprint.details.packaging.score 
-                      : analysis.carbonFootprint.details.packaging
-                  }/100
-                  {analysis.carbonFootprint.details.packaging.explanation && (
-                    <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-                      {analysis.carbonFootprint.details.packaging.explanation}
-                    </Typography>
-                  )}
-                </Typography>
+                    <Box>
+                      <Typography variant="body2" color="text.secondary">
+                        Packaging Impact
+                      </Typography>
+                      <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                        <Slider
+                          value={analysis.carbonFootprint?.details?.packaging?.score || 0}
+                          disabled
+                          sx={{ mx: 2, flexGrow: 1 }}
+                        />
+                        <Typography variant="body2">
+                          {analysis.carbonFootprint?.details?.packaging?.score || 0}/100
+                        </Typography>
+                      </Box>
+                    </Box>
+                  </AccordionDetails>
+                </Accordion>
+              </CardContent>
+            </Card>
+          </Grid>
 
-                <Typography variant="body1" sx={{ mt: 1 }}>
-                  <strong>Lifecycle Impact:</strong> {
-                    typeof analysis.carbonFootprint.details.lifecycle === 'object'
-                      ? analysis.carbonFootprint.details.lifecycle.score 
-                      : analysis.carbonFootprint.details.lifecycle
-                  }/100
-                  {analysis.carbonFootprint.details.lifecycle.explanation && (
-                    <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-                      {analysis.carbonFootprint.details.lifecycle.explanation}
-                    </Typography>
-                  )}
-                </Typography>
-
-                {/* Overall Explanation */}
-                {analysis.carbonFootprint.overallExplanation && (
-                  <Typography variant="body2" sx={{ mt: 2, bgcolor: 'background.paper', p: 1, borderRadius: 1 }}>
-                    <strong>Analysis:</strong> {analysis.carbonFootprint.overallExplanation}
-                  </Typography>
-                )}
-                </CardContent>
-              </Card>
-            </Grid>
-
+          {/* Similar Products Section */}
           <Grid item xs={12}>
-            <Card>
-              <CardContent>
-                  <Typography variant="h6" gutterBottom>
-                    Similar Products
+            <Card sx={{ 
+              bgcolor: theme.palette.mode === 'dark' ? 'background.default' : 'background.paper',
+              border: theme.palette.mode === 'dark' ? '1px solid rgba(255, 255, 255, 0.12)' : 'none'
+            }}>
+              <CardContent sx={{ 
+                bgcolor: theme.palette.mode === 'dark' ? 'background.default' : 'background.paper'
+              }}>
+                <Typography 
+                  variant="h6" 
+                  gutterBottom
+                  sx={{ color: theme.palette.mode === 'dark' ? 'primary.light' : 'text.primary' }}
+                >
+                  Similar Products
+                </Typography>
+                <Box sx={{ mb: 3 }}>
+                  <Typography variant="body2" color="text.secondary" gutterBottom>
+                    Price Range: ${priceRange[0]} - ${priceRange[1]}
                   </Typography>
-                <Box sx={{ mt: 4 }}>
-                  <Typography variant="h6" gutterBottom sx={{ 
-                    borderBottom: '2px solid #4caf50', 
-                    paddingBottom: '8px',
-                    marginBottom: '16px'
-                  }}>
-                    Similar Products
-                  </Typography>
-                  
-                  <Box sx={{ px: 2, pb: 3, pt: 1 }}>
-                    <Typography variant="body2" gutterBottom>
-                      Price Range: ₹{priceRange[0]} - ₹{priceRange[1]} 
-                      <span style={{ color: '#666', marginLeft: '8px' }}>
-                        ({filteredProducts.length} products)
-                      </span>
-                    </Typography>
-                    
-                    <Slider
-                      value={priceRange}
-                      onChange={handlePriceRangeChange}
-                      valueLabelDisplay="auto"
-                      min={0}
-                      max={maxPriceRange}
-                      valueLabelFormat={(value) => `₹${value}`}
-                      sx={{ 
-                        color: '#4caf50',
-                        '& .MuiSlider-valueLabel': {
-                          backgroundColor: '#4caf50'
+                  <Slider
+                    value={priceRange}
+                    onChange={handlePriceRangeChange}
+                    valueLabelDisplay="auto"
+                    min={0}
+                    max={maxPriceRange}
+                    sx={{ 
+                      mt: 2,
+                      color: theme.palette.mode === 'dark' ? 'primary.light' : 'primary.main',
+                      '& .MuiSlider-track': {
+                        backgroundColor: theme.palette.mode === 'dark' ? 'primary.light' : 'primary.main'
+                      },
+                      '& .MuiSlider-rail': {
+                        backgroundColor: theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.2)'
+                      }
+                    }}
+                  />
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 1 }}>
+                    <Button 
+                      size="small" 
+                      onClick={() => {
+                        const narrow = [
+                          Math.max(0, Math.floor(analysis.price * 0.9)),
+                          Math.ceil(analysis.price * 1.1)
+                        ];
+                        setPriceRange(narrow);
+                        filterSimilarProducts(narrow);
+                      }}
+                      sx={{
+                        color: theme.palette.mode === 'dark' ? 'primary.light' : 'primary.main',
+                        borderColor: theme.palette.mode === 'dark' ? 'primary.light' : 'primary.main',
+                        '&:hover': {
+                          borderColor: theme.palette.mode === 'dark' ? 'primary.main' : 'primary.dark'
                         }
                       }}
-                    />
-                    
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 1 }}>
-                      <Button 
-                        size="small" 
-                        onClick={() => {
-                          const narrow = [
-                            Math.max(0, Math.floor(analysis.price * 0.9)),
-                            Math.ceil(analysis.price * 1.1)
-                          ];
-                          setPriceRange(narrow);
-                          filterSimilarProducts(narrow);
-                        }}
-                      >
-                        Narrow Range
-                      </Button>
-                      <Button 
-                        size="small"
-                        onClick={() => {
-                          const wide = [0, maxPriceRange];
-                          setPriceRange(wide);
-                          filterSimilarProducts(wide);
-                        }}
-                      >
-                        Show All
-                      </Button>
-                    </Box>
+                      variant="outlined"
+                    >
+                      Narrow Range
+                    </Button>
+                    <Button 
+                      size="small"
+                      onClick={() => {
+                        const wide = [0, maxPriceRange];
+                        setPriceRange(wide);
+                        filterSimilarProducts(wide);
+                      }}
+                      sx={{
+                        color: theme.palette.mode === 'dark' ? 'primary.light' : 'primary.main',
+                        borderColor: theme.palette.mode === 'dark' ? 'primary.light' : 'primary.main',
+                        '&:hover': {
+                          borderColor: theme.palette.mode === 'dark' ? 'primary.main' : 'primary.dark'
+                        }
+                      }}
+                      variant="outlined"
+                    >
+                      Show All
+                    </Button>
                   </Box>
-                  
-                  {filteredProducts.length > 0 ? (
-                    <Grid container spacing={2}>
-                      {filteredProducts.map((product, index) => (
-                        <Grid item xs={6} sm={4} md={3} key={index}>
-                          <Card 
-                            elevation={2} 
-                            sx={{ 
-                              height: '100%',
-                              display: 'flex',
-                              flexDirection: 'column',
-                              transition: 'transform 0.2s ease-in-out',
-                              '&:hover': {
-                                transform: 'translateY(-3px)',
-                                boxShadow: '0 5px 10px rgba(0,0,0,0.1)'
-                              }
-                            }}
-                          >
-                          <a
-                            href={product.link}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                              style={{ textDecoration: 'none', color: 'inherit', display: 'block' }}
-                            >
-                              <Box sx={{ 
-                                position: 'relative',
-                                paddingTop: '75%', // 4:3 aspect ratio
-                                overflow: 'hidden',
-                                backgroundColor: '#f5f5f5'
-                              }}>
-                                <img
-                                  src={product.imageUrl || `https://via.placeholder.com/120?text=${encodeURIComponent(product.name.substring(0, 15))}`}
-                                      alt={product.name}
-                                      style={{
-                                    position: 'absolute',
-                                    top: 0,
-                                    left: 0,
-                                        width: '100%',
-                                        height: '100%',
-                                    objectFit: 'contain'
-                                  }}
-                                  onError={(e) => {
-                                    e.target.onerror = null; 
-                                    e.target.src = `https://via.placeholder.com/120?text=${encodeURIComponent(product.name.substring(0, 15))}`;
-                                      }}
-                                  />
-                                </Box>
-                          </a>
-                          
-                          <CardContent sx={{ p: 1.5, pt: 1, pb: '8px !important', flexGrow: 1 }}>
-                            <Typography 
-                              variant="body2" 
-                                  sx={{
-                                fontWeight: 'medium',
-                                overflow: 'hidden',
-                                textOverflow: 'ellipsis',
-                                display: '-webkit-box',
-                                WebkitLineClamp: 2,
-                                WebkitBoxOrient: 'vertical',
-                                lineHeight: '1.2',
-                                minHeight: '2.4em',
-                                fontSize: '0.85rem'
+                </Box>
+
+                <Box sx={{ 
+                  display: 'flex', 
+                  flexWrap: 'wrap', 
+                  gap: 3,
+                  justifyContent: 'center'
+                }}>
+                  {filteredProducts && filteredProducts.length > 0 ? (
+                    filteredProducts.map((product, index) => (
+                      <Card 
+                        key={index}
+                        sx={{ 
+                          width: '500px',
+                          height: '300px',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          transition: 'transform 0.2s ease-in-out',
+                          bgcolor: theme.palette.mode === 'dark' ? 'background.default' : 'background.paper',
+                          border: theme.palette.mode === 'dark' ? '1px solid rgba(255, 255, 255, 0.12)' : 'none',
+                          '&:hover': {
+                            transform: 'translateY(-4px)',
+                            boxShadow: theme.shadows[4]
+                          }
+                        }}
+                      >
+                        <Box sx={{ 
+                          display: 'flex',
+                          height: '100%',
+                          position: 'relative'
+                        }}>
+                          <Box sx={{ 
+                            width: '50%',
+                            height: '100%',
+                            position: 'relative',
+                            overflow: 'hidden',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            bgcolor: theme.palette.mode === 'dark' ? 'background.default' : 'background.paper'
+                          }}>
+                            <CardMedia
+                              component="img"
+                              image={product.imageUrl}
+                              alt={product.name}
+                              sx={{ 
+                                width: '100%',
+                                height: '100%',
+                                objectFit: 'contain',
+                                p: 2,
+                                transition: 'transform 0.3s ease-in-out',
+                                '&:hover': {
+                                  transform: 'scale(1.05)'
+                                }
                               }}
-                            >
-                                  {product.name}
-                                </Typography>
-                            
-                            <Typography variant="body2" color="primary" sx={{ mt: 1, fontWeight: 'bold' }}>
-                              ₹{product.price.toLocaleString()}
-                            </Typography>
-                            
-                            {/* Ingredients Accordion */}
-                            {product.ingredients && product.ingredients.length > 0 && (
-                              <Accordion 
+                            />
+                          </Box>
+                          <Box sx={{ 
+                            width: '50%',
+                            p: 3,
+                            display: 'flex',
+                            flexDirection: 'column',
+                            justifyContent: 'space-between',
+                            bgcolor: theme.palette.mode === 'dark' ? 'background.default' : 'background.paper'
+                          }}>
+                            <Box>
+                              <Typography 
+                                variant="h5" 
+                                component="div" 
+                                noWrap
                                 sx={{ 
-                                  mt: 1, 
-                                  boxShadow: 'none',
-                                  '&:before': { display: 'none' },
-                                  backgroundColor: 'transparent'
+                                  fontWeight: 'bold',
+                                  mb: 2,
+                                  color: theme.palette.mode === 'dark' ? 'text.primary' : 'text.primary'
                                 }}
                               >
-                                <AccordionSummary
-                                  expandIcon={<ExpandMoreIcon fontSize="small" />}
-                                  sx={{ 
-                                    p: 0, 
-                                    minHeight: '32px !important',
-                                    '& .MuiAccordionSummary-content': { m: 0 }
-                                  }}
-                                >
-                                  <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 'medium' }}>
-                                    Ingredients
-                                  </Typography>
-                                </AccordionSummary>
-                                <AccordionDetails sx={{ p: 0, pt: 0.5, pb: 1 }}>
-                                  <List dense disablePadding sx={{ ml: 1, mt: 0 }}>
-                                    {Array.isArray(product.ingredients) ? 
-                                      product.ingredients.slice(0, 3).map((ingredient, idx) => (
-                                        <ListItem key={idx} disablePadding disableGutters sx={{ py: 0.25 }}>
-                                          <ListItemIcon sx={{ minWidth: 24 }}>
-                                            <FiberManualRecordIcon fontSize="small" sx={{ fontSize: '8px' }} />
-                                          </ListItemIcon>
-                                          <ListItemText 
-                                            primary={ingredient} 
-                                            primaryTypographyProps={{ 
-                                              variant: 'caption', 
-                                              sx: { 
-                                                overflow: 'hidden',
-                                                textOverflow: 'ellipsis',
-                                                display: '-webkit-box',
-                                                WebkitLineClamp: 1,
-                                                WebkitBoxOrient: 'vertical',
-                                              } 
-                                            }}
-                                          />
-                                        </ListItem>
-                                      )) : 
-                                      <Typography variant="caption">No ingredient data</Typography>
-                                    }
-                                    {Array.isArray(product.ingredients) && product.ingredients.length > 3 && (
-                                      <Typography variant="caption" color="primary" sx={{ display: 'block', mt: 0.5 }}>
-                                        +{product.ingredients.length - 3} more
-                                      </Typography>
-                                    )}
-                                  </List>
-                                </AccordionDetails>
-                              </Accordion>
-                            )}
-                            
-                            {/* Packaging Info (optional) */}
-                            {product.packaging && product.packaging.materials && product.packaging.materials.length > 0 && (
-                              <Box sx={{ mt: 0.5 }}>
-                                <Typography variant="caption" color="text.secondary" sx={{ display: 'flex', alignItems: 'center' }}>
-                                  <RecyclingIcon fontSize="small" sx={{ mr: 0.5, fontSize: '14px' }} />
-                                  {product.packaging.recyclable ? 'Recyclable' : 'Non-recyclable'}
+                                {product.name}
+                              </Typography>
+                              <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                                <LocalOfferIcon sx={{ mr: 1, color: 'primary.main', fontSize: '1.2rem' }} />
+                                <Typography variant="h6" sx={{ color: theme.palette.mode === 'dark' ? 'text.secondary' : 'text.primary' }}>
+                                  ${product.price || '0'}
                                 </Typography>
                               </Box>
-                            )}
-                              </CardContent>
-                          
-                          <CardActions sx={{ p: 1, pt: 0 }}>
+                              <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                                <NatureIcon sx={{ mr: 1, color: 'success.main', fontSize: '1.2rem' }} />
+                                <Typography variant="h6" color="text.secondary">
+                                  Eco Score: {product.carbonFootprint?.score || 0}/100
+                                </Typography>
+                              </Box>
+                            </Box>
                             <Button 
-                              href={product.link}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              size="small" 
-                              variant="outlined" 
-                              fullWidth
+                              size="large" 
+                              color="primary"
+                              variant="contained"
+                              sx={{ 
+                                mt: 2,
+                                alignSelf: 'flex-start',
+                                px: 3,
+                                py: 1,
+                                bgcolor: theme.palette.mode === 'dark' ? 'primary.dark' : 'primary.main',
+                                '&:hover': {
+                                  bgcolor: theme.palette.mode === 'dark' ? 'primary.main' : 'primary.dark'
+                                }
+                              }}
                             >
                               View Details
                             </Button>
-                          </CardActions>
-                          </Card>
-                      </Grid>
-                    ))}
-                  </Grid>
-                ) : (
-                  <Box sx={{ py: 4, textAlign: 'center' }}>
-                    <Typography variant="body1" color="text.secondary">
-                      No products found in this price range.
-                    </Typography>
-                    <Button 
-                      variant="outlined" 
-                      sx={{ mt: 2 }}
-                      onClick={() => {
-                        const wider = [
-                          Math.max(0, Math.floor(analysis.price * 0.5)),
-                          Math.ceil(analysis.price * 2)
-                        ];
-                        setPriceRange(wider);
-                        filterSimilarProducts(wider);
-                      }}
-                    >
-                      Try Wider Range
-                    </Button>
-                  </Box>
-                )}
+                          </Box>
+                        </Box>
+                      </Card>
+                    ))
+                  ) : (
+                    <Box sx={{ 
+                      width: '100%', 
+                      py: 4, 
+                      textAlign: 'center',
+                      bgcolor: theme.palette.mode === 'dark' ? 'background.default' : 'background.paper'
+                    }}>
+                      <Typography variant="body1" color="text.secondary">
+                        No similar products found
+                      </Typography>
+                    </Box>
+                  )}
                 </Box>
-                </CardContent>
-              </Card>
-            </Grid>
+              </CardContent>
+            </Card>
           </Grid>
+        </Grid>
       )}
+
+      {/* Chatbot */}
+      {analysis && <ProductChatBot product={analysis} />}
     </Container>
   );
 };
