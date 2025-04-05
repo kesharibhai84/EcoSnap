@@ -10,16 +10,26 @@ import {
   CardContent,
   Grid,
   Alert,
+  Divider
 } from '@mui/material';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
-import axios from 'axios';
+import SimpleChatBot from '../components/SimpleChatBot';
+import api from '../utils/axiosConfig';
+import { useNavigate } from 'react-router-dom';
 
 const ProductAnalysis = () => {
+  const navigate = useNavigate();
   const [image, setImage] = useState(null);
   const [price, setPrice] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [analysis, setAnalysis] = useState(null);
+  const [formData, setFormData] = useState({
+    name: '',
+    description: '',
+    price: '',
+    imageUrl: ''
+  });
 
   const handleImageUpload = (event) => {
     const file = event.target.files[0];
@@ -28,28 +38,35 @@ const ProductAnalysis = () => {
     }
   };
 
-  const handleSubmit = async () => {
-    if (!image || !price) {
-      setError('Please provide both an image and price');
-      return;
-    }
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
 
+  const handleSubmit = async (e) => {
+    e.preventDefault();
     setLoading(true);
     setError('');
 
     try {
-      // Convert image to base64
-      const base64Image = await convertImageToBase64(image);
+      // Validate form data
+      if (!formData.name || !formData.price || !formData.imageUrl) {
+        throw new Error('Please fill in all required fields');
+      }
 
-      // Send to backend
-      const response = await axios.post('http://localhost:5000/api/products/analyze', {
-        imageUrl: base64Image,
-        price: parseFloat(price),
+      const response = await api.post('/api/products/analyze', {
+        ...formData,
+        price: parseFloat(formData.price)
       });
 
-      setAnalysis(response.data);
+      console.log('Analysis successful:', response.data);
+      navigate('/products'); // Redirect to products page after successful analysis
     } catch (err) {
-      setError(err.response?.data?.message || 'An error occurred during analysis');
+      console.error('Error analyzing product:', err);
+      setError(err.response?.data?.message || err.message || 'Failed to analyze product');
     } finally {
       setLoading(false);
     }
@@ -73,134 +90,185 @@ const ProductAnalysis = () => {
   };
 
   return (
-    <Container maxWidth="lg" sx={{ py: 4 }}>
-      <Typography variant="h4" component="h1" gutterBottom>
-        Product Analysis
+    <Container maxWidth="md" sx={{ py: 4 }}>
+      <Typography 
+        variant="h4" 
+        component="h1" 
+        gutterBottom
+        sx={{ textAlign: 'center', mb: 4 }}
+      >
+        Analyze Product
       </Typography>
 
-      <Box sx={{ mb: 4 }}>
-        <input
-          accept="image/*"
-          style={{ display: 'none' }}
-          id="image-upload"
-          type="file"
-          onChange={handleImageUpload}
-        />
-        <label htmlFor="image-upload">
-          <Button
-            variant="contained"
-            component="span"
-            startIcon={<CloudUploadIcon />}
-            sx={{ mb: 2 }}
-          >
-            Upload Product Image
-          </Button>
-        </label>
+      <Card elevation={3}>
+        <CardContent>
+          {error && (
+            <Alert severity="error" sx={{ mb: 3 }}>
+              {error}
+            </Alert>
+          )}
 
-        {image && (
-          <Box sx={{ mt: 2 }}>
-            <img
-              src={image}
-              alt="Product"
-              style={{ maxWidth: '100%', maxHeight: '300px' }}
+          <Box component="form" onSubmit={handleSubmit}>
+            <TextField
+              fullWidth
+              label="Product Name"
+              name="name"
+              value={formData.name}
+              onChange={handleChange}
+              required
+              margin="normal"
             />
+
+            <TextField
+              fullWidth
+              label="Description"
+              name="description"
+              value={formData.description}
+              onChange={handleChange}
+              multiline
+              rows={3}
+              margin="normal"
+            />
+
+            <TextField
+              fullWidth
+              label="Price"
+              name="price"
+              type="number"
+              value={formData.price}
+              onChange={handleChange}
+              required
+              margin="normal"
+              InputProps={{
+                inputProps: { min: 0, step: "0.01" }
+              }}
+            />
+
+            <TextField
+              fullWidth
+              label="Image URL"
+              name="imageUrl"
+              value={formData.imageUrl}
+              onChange={handleChange}
+              required
+              margin="normal"
+            />
+
+            <Button
+              type="submit"
+              variant="contained"
+              color="primary"
+              fullWidth
+              size="large"
+              disabled={loading}
+              sx={{ mt: 3 }}
+            >
+              {loading ? (
+                <CircularProgress size={24} color="inherit" />
+              ) : (
+                'Analyze Product'
+              )}
+            </Button>
           </Box>
-        )}
+        </CardContent>
+      </Card>
 
-        <TextField
-          fullWidth
-          label="Product Price"
-          type="number"
-          value={price}
-          onChange={(e) => setPrice(e.target.value)}
-          sx={{ mt: 2 }}
-        />
+      {!analysis && (
+        <Box sx={{ mt: 4 }}>
+          <input
+            accept="image/*"
+            style={{ display: 'none' }}
+            id="image-upload"
+            type="file"
+            onChange={handleImageUpload}
+          />
+          <label htmlFor="image-upload">
+            <Button
+              variant="contained"
+              component="span"
+              startIcon={<CloudUploadIcon />}
+              sx={{ mb: 2 }}
+            >
+              Upload Product Image
+            </Button>
+          </label>
 
-        <Button
-          variant="contained"
-          color="primary"
-          onClick={handleSubmit}
-          disabled={loading || !image || !price}
-          sx={{ mt: 2 }}
-        >
-          {loading ? <CircularProgress size={24} /> : 'Analyze Product'}
-        </Button>
-
-        {error && (
-          <Alert severity="error" sx={{ mt: 2 }}>
-            {error}
-          </Alert>
-        )}
-      </Box>
+          {image && (
+            <Box sx={{ mt: 2 }}>
+              <img
+                src={image}
+                alt="Product"
+                style={{ maxWidth: '100%', maxHeight: '300px' }}
+              />
+            </Box>
+          )}
+        </Box>
+      )}
 
       {analysis && (
-        <Grid container spacing={3}>
-          <Grid item xs={12} md={6}>
+        <Grid container spacing={3} sx={{ mt: 4 }}>
+          <Grid item xs={12} md={7}>
             <Card>
               <CardContent>
-                <Typography variant="h6" gutterBottom>
-                  Product Details
+                <Typography variant="h5" gutterBottom>
+                  {analysis.name}
                 </Typography>
-                <Typography>Name: {analysis.name}</Typography>
-                <Typography>Price: ${analysis.price}</Typography>
-                <Typography variant="h6" sx={{ mt: 2 }} gutterBottom>
+                <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
+                  <img
+                    src={analysis.imageUrl}
+                    alt={analysis.name}
+                    style={{ width: '200px', height: 'auto' }}
+                  />
+                  <Box>
+                    <Typography variant="body1" gutterBottom>
+                      <strong>Price:</strong> ${analysis.price}
+                    </Typography>
+                    <Typography variant="body1" gutterBottom>
+                      <strong>Eco Score:</strong> {analysis.carbonFootprint.score}/100
+                    </Typography>
+                    <Box sx={{ mt: 2 }}>
+                      <Typography variant="body2" color="text.secondary">
+                        Environmental Impact:
+                      </Typography>
+                      <ul>
+                        <li>Manufacturing: {analysis.carbonFootprint.details.manufacturing}/100</li>
+                        <li>Transportation: {analysis.carbonFootprint.details.transportation}/100</li>
+                        <li>Packaging: {analysis.carbonFootprint.details.packaging}/100</li>
+                        <li>Lifecycle: {analysis.carbonFootprint.details.lifecycle}/100</li>
+                      </ul>
+                    </Box>
+                  </Box>
+                </Box>
+                
+                <Divider sx={{ my: 2 }} />
+                
+                <Typography variant="h6" gutterBottom>
                   Ingredients
                 </Typography>
                 <ul>
-                  {analysis.ingredients.map((ingredient, index) => (
-                    <li key={index}>{ingredient}</li>
+                  {analysis.ingredients.map((ingredient, idx) => (
+                    <li key={idx}>{ingredient}</li>
                   ))}
                 </ul>
+                
+                <Typography variant="h6" gutterBottom sx={{ mt: 2 }}>
+                  Packaging
+                </Typography>
+                <Typography>
+                  <strong>Materials:</strong> {analysis.packagingDetails.materials.join(', ')}
+                </Typography>
+                <Typography>
+                  <strong>Recyclable:</strong> {analysis.packagingDetails.recyclable ? 'Yes' : 'No'}
+                </Typography>
               </CardContent>
             </Card>
           </Grid>
-
-          <Grid item xs={12} md={6}>
-            <Card>
-              <CardContent>
-                <Typography variant="h6" gutterBottom>
-                  Environmental Impact
-                </Typography>
-                <Typography variant="h4" color="primary" gutterBottom>
-                  Score: {analysis.carbonFootprint.score}/100
-                </Typography>
-                <Typography variant="h6" sx={{ mt: 2 }} gutterBottom>
-                  Details
-                </Typography>
-                <Typography>Manufacturing: {analysis.carbonFootprint.details.manufacturing}</Typography>
-                <Typography>Transportation: {analysis.carbonFootprint.details.transportation}</Typography>
-                <Typography>Packaging: {analysis.carbonFootprint.details.packaging}</Typography>
-                <Typography>Lifecycle: {analysis.carbonFootprint.details.lifecycle}</Typography>
-              </CardContent>
-            </Card>
-          </Grid>
-
-          <Grid item xs={12}>
-            <Card>
-              <CardContent>
-                <Typography variant="h6" gutterBottom>
-                  Similar Products
-                </Typography>
-                <Grid container spacing={2}>
-                  {analysis.similarProducts.map((product, index) => (
-                    <Grid item xs={12} sm={6} md={4} key={index}>
-                      <Card>
-                        <CardContent>
-                          <img
-                            src={product.imageUrl}
-                            alt={product.name}
-                            style={{ width: '100%', height: 'auto' }}
-                          />
-                          <Typography variant="subtitle1">{product.name}</Typography>
-                          <Typography>Price: ${product.price}</Typography>
-                          <Typography>Eco Score: {product.carbonFootprint}/100</Typography>
-                        </CardContent>
-                      </Card>
-                    </Grid>
-                  ))}
-                </Grid>
-              </CardContent>
-            </Card>
+          
+          <Grid item xs={12} md={5}>
+            <Typography variant="h6" gutterBottom>
+              Ask About This Product
+            </Typography>
+            <SimpleChatBot product={analysis} />
           </Grid>
         </Grid>
       )}

@@ -285,8 +285,73 @@ async function calculateCarbonFootprint(productAnalysis) {
   }
 }
 
+// Add this new function before the module.exports
+async function answerProductQuestion(product, question) {
+  try {
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    
+    const prompt = `You are a helpful product assistant. Answer the following question about this product based ONLY on the provided information. Be concise but informative.
+
+Product Information:
+- Name: ${product.name}
+- Ingredients: ${product.ingredients.join(', ')}
+- Packaging: ${JSON.stringify(product.packagingDetails)}
+- Carbon Footprint Score: ${product.carbonFootprint.score}/100
+- Environmental Impact Details:
+  * Manufacturing Impact: ${product.carbonFootprint.details.manufacturing}/100
+  * Transportation Impact: ${product.carbonFootprint.details.transportation}/100
+  * Packaging Impact: ${product.carbonFootprint.details.packaging}/100
+  * Lifecycle Impact: ${product.carbonFootprint.details.lifecycle}/100
+
+User Question: ${question}
+
+Rules:
+1. Only use the information provided above to answer
+2. If you can't answer with certainty based on the given information, say so
+3. For eco scores, explain the factors that contributed to the score
+4. For ingredient-based questions (like "is it vegan?"), analyze the ingredients list
+5. Keep answers concise but informative`;
+
+    const result = await model.generateContent([{ text: prompt }]);
+    const response = await result.response;
+    return response.text().trim();
+  } catch (error) {
+    console.error('Error in product chatbot:', error);
+    throw error;
+  }
+}
+
+// Add this new function at the end, before module.exports
+async function chatWithProduct(productData, userQuestion) {
+  try {
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    
+    const prompt = `You are a helpful product assistant. Answer the following question about this product:
+
+Product Information:
+- Name: ${productData.name}
+- Ingredients: ${productData.ingredients.join(', ')}
+- Packaging: ${JSON.stringify(productData.packagingDetails)}
+- Carbon Footprint Score: ${productData.carbonFootprint.score}/100
+- Carbon Footprint Details: ${JSON.stringify(productData.carbonFootprint.details)}
+
+User Question: ${userQuestion}
+
+Provide a clear, concise answer based only on the product information provided above. If you cannot answer with certainty based on the given information, say so.`;
+    
+    const result = await model.generateContent([{ text: prompt }]);
+    const response = await result.response;
+    return response.text().trim();
+  } catch (error) {
+    console.error('Error in chatbot:', error);
+    throw error;
+  }
+}
+
 module.exports = {
   analyzeProduct,
   findSimilarProducts,
-  calculateCarbonFootprint
+  calculateCarbonFootprint,
+  answerProductQuestion,
+  chatWithProduct
 }; 

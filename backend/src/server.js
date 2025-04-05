@@ -8,8 +8,9 @@ dotenv.config();
 
 const app = express();
 
-// Middleware
+// Simpler CORS config for debugging
 app.use(cors());
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -20,6 +21,13 @@ mongoose.connect(process.env.MONGODB_URI)
 
 // Routes
 app.use('/api/products', require('./routes/productRoutes'));
+app.use('/api/auth', require('./routes/authRoutes'));
+app.use('/api/test', require('./routes/testRoutes'));
+
+// Health check route
+app.get('/health', (req, res) => {
+  res.status(200).json({ status: 'Server is running' });
+});
 
 // Error handling middleware
 app.use((err, req, res, next) => {

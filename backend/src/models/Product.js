@@ -6,12 +6,16 @@ const productSchema = new mongoose.Schema({
     required: true,
     trim: true
   },
-  imageUrl: {
+  description: {
     type: String,
-    required: true
+    trim: true
   },
   price: {
     type: Number,
+    required: true
+  },
+  imageUrl: {
+    type: String,
     required: true
   },
   ingredients: [{
@@ -42,10 +46,28 @@ const productSchema = new mongoose.Schema({
     imageUrl: String,
     carbonFootprint: Number
   }],
+  analyzedBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: true
+  },
+  analysisResults: {
+    ecoScore: {
+      type: Number,
+      default: 0
+    },
+    carbonFootprint: {
+      type: Number,
+      default: 0
+    },
+    recommendations: [String]
+  },
   createdAt: {
     type: Date,
     default: Date.now
   }
 });
 
-module.exports = mongoose.model('Product', productSchema); 
+const Product = mongoose.model('Product', productSchema);
+
+module.exports = Product; 

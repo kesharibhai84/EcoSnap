@@ -19,6 +19,8 @@ import StarIcon from '@mui/icons-material/Star';
 import axios from 'axios';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
+import api from '../utils/axiosConfig';
+import ProductAnalysis from './ProductAnalysis';
 
 // Theme colors
 const themeColors = {
@@ -37,6 +39,7 @@ const ProductList = () => {
   const [loading, setLoading] = useState(true);
   const [activeProduct, setActiveProduct] = useState(null);
   const [viewMode, setViewMode] = useState('list'); // 'grid' or 'list'
+  const [selectedProductId, setSelectedProductId] = useState(null);
 
   const canvasRef = useRef(null);
   const sceneRef = useRef(null);
@@ -74,7 +77,7 @@ const ProductList = () => {
 
   const fetchProducts = async () => {
     try {
-      const response = await axios.get('http://localhost:5000/api/products');
+      const response = await api.get('/api/products');
       setProducts(response.data);
       if (response.data.length > 0) {
         setActiveProduct(response.data[0]);
@@ -279,6 +282,7 @@ const ProductList = () => {
 
   const handleCardClick = (product) => {
     setActiveProduct(product);
+    setSelectedProductId(product._id);
   };
 
   const handleImageError = (e) => {
@@ -663,6 +667,8 @@ const ProductList = () => {
           </Typography>
         </Box>
       )}
+
+      {selectedProductId && <ProductAnalysis productId={selectedProductId} />}
     </Container>
   );
 };
