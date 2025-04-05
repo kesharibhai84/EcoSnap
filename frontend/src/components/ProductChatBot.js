@@ -8,10 +8,15 @@ import {
   Paper, 
   Chip,
   CircularProgress,
-  Divider
+  Divider,
+  IconButton,
+  Collapse,
+  Zoom
 } from '@mui/material';
 import SendIcon from '@mui/icons-material/Send';
 import ChatIcon from '@mui/icons-material/Chat';
+import CloseIcon from '@mui/icons-material/Close';
+import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
 
 const ProductChatBot = ({ product }) => {
   console.log('Product in chatbot:', product); // Add this to debug the product object
@@ -23,6 +28,7 @@ const ProductChatBot = ({ product }) => {
     }
   }, [product]);
 
+  const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState([
     { 
       type: 'bot', 
@@ -96,115 +102,170 @@ const ProductChatBot = ({ product }) => {
   ];
 
   return (
-    <Paper 
-      elevation={3} 
-      sx={{ 
-        p: 2, 
-        borderRadius: 2,
-        height: 450, 
-        display: 'flex', 
-        flexDirection: 'column'
-      }}
-    >
-      <Box sx={{ 
-        display: 'flex', 
-        alignItems: 'center', 
-        mb: 2, 
-        pb: 1, 
-        borderBottom: '1px solid #eee' 
-      }}>
-        <ChatIcon color="primary" sx={{ mr: 1 }} />
-        <Typography variant="h6">Product Assistant</Typography>
-      </Box>
-      
-      {/* Message area */}
-      <Box 
-        sx={{ 
-          flexGrow: 1, 
-          overflow: 'auto', 
-          mb: 2,
-          p: 1
-        }}
-      >
-        {messages.map((message, index) => (
+    <>
+      {/* Floating Help Button */}
+      <Zoom in={!isOpen}>
+        <Button
+          variant="contained"
+          color="primary"
+          startIcon={<HelpOutlineIcon />}
+          onClick={() => setIsOpen(true)}
+          sx={{
+            position: 'fixed',
+            bottom: 24,
+            right: 24,
+            borderRadius: '50px',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+            zIndex: 1000,
+            '&:hover': {
+              transform: 'translateY(-2px)',
+              boxShadow: '0 6px 16px rgba(0,0,0,0.2)'
+            }
+          }}
+        >
+          Need Assistance?
+        </Button>
+      </Zoom>
+
+      {/* Chat Window */}
+      <Collapse in={isOpen} timeout={300}>
+        <Paper 
+          elevation={3} 
+          sx={{ 
+            position: 'fixed',
+            bottom: 24,
+            right: 24,
+            width: 350,
+            height: 500,
+            borderRadius: 2,
+            display: 'flex', 
+            flexDirection: 'column',
+            zIndex: 1000,
+            overflow: 'hidden'
+          }}
+        >
+          {/* Header */}
+          <Box sx={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'space-between',
+            p: 2, 
+            bgcolor: 'primary.main',
+            color: 'white'
+          }}>
+            <Box sx={{ display: 'flex', alignItems: 'center' }}>
+              <ChatIcon sx={{ mr: 1 }} />
+              <Typography variant="h6">Product Assistant</Typography>
+            </Box>
+            <IconButton 
+              onClick={() => setIsOpen(false)}
+              sx={{ color: 'white' }}
+            >
+              <CloseIcon />
+            </IconButton>
+          </Box>
+          
+          {/* Message area */}
           <Box 
-            key={index} 
             sx={{ 
-              display: 'flex', 
-              justifyContent: message.type === 'user' ? 'flex-end' : 'flex-start',
-              mb: 1.5
+              flexGrow: 1, 
+              overflow: 'auto', 
+              p: 2,
+              bgcolor: 'background.default'
             }}
           >
-            <Box
-              sx={{
-                maxWidth: '70%',
-                p: 1.5,
-                borderRadius: 2,
-                backgroundColor: 
-                  message.type === 'user' ? '#1976d2' : 
-                  message.type === 'error' ? '#ffebee' : 
-                  '#f5f5f5',
-                color: message.type === 'user' ? 'white' : 
-                       message.type === 'error' ? '#d32f2f' : 
-                       'inherit'
-              }}
-            >
-              <Typography variant="body1">{message.text}</Typography>
+            {messages.map((message, index) => (
+              <Box 
+                key={index} 
+                sx={{ 
+                  display: 'flex',
+                  justifyContent: message.type === 'user' ? 'flex-end' : 'flex-start',
+                  mb: 1.5
+                }}
+              >
+                <Box
+                  sx={{
+                    maxWidth: '80%',
+                    p: 1.5,
+                    borderRadius: 2,
+                    backgroundColor: 
+                      message.type === 'user' ? 'primary.main' : 
+                      message.type === 'error' ? 'error.light' : 
+                      'background.paper',
+                    color: message.type === 'user' ? 'white' : 
+                           message.type === 'error' ? 'error.main' : 
+                           'text.primary',
+                    boxShadow: '0 1px 2px rgba(0,0,0,0.1)'
+                  }}
+                >
+                  <Typography variant="body2">{message.text}</Typography>
+                </Box>
+              </Box>
+            ))}
+            {loading && (
+              <Box sx={{ display: 'flex', justifyContent: 'flex-start', mb: 1.5 }}>
+                <Box sx={{ p: 2, borderRadius: 2, backgroundColor: 'background.paper' }}>
+                  <CircularProgress size={20} thickness={4} />
+                </Box>
+              </Box>
+            )}
+            <div ref={messagesEndRef} />
+          </Box>
+          
+          {/* Quick questions */}
+          <Box sx={{ p: 2, bgcolor: 'background.paper', borderTop: '1px solid', borderColor: 'divider' }}>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+              Suggested questions:
+            </Typography>
+            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+              {quickQuestions.map((question, index) => (
+                <Chip
+                  key={index}
+                  label={question}
+                  onClick={() => handleQuickQuestion(question)}
+                  variant="outlined"
+                  clickable
+                  size="small"
+                />
+              ))}
             </Box>
           </Box>
-        ))}
-        {loading && (
-          <Box sx={{ display: 'flex', justifyContent: 'flex-start', mb: 1.5 }}>
-            <Box sx={{ p: 2, borderRadius: 2, backgroundColor: '#f5f5f5' }}>
-              <CircularProgress size={20} thickness={4} />
-            </Box>
-          </Box>
-        )}
-        <div ref={messagesEndRef} />
-      </Box>
-      
-      {/* Quick questions */}
-      <Box sx={{ mb: 2 }}>
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-          Suggested questions:
-        </Typography>
-        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-          {quickQuestions.map((question, index) => (
-            <Chip
-              key={index}
-              label={question}
-              onClick={() => handleQuickQuestion(question)}
+          
+          {/* Input area */}
+          <Box 
+            component="form" 
+            onSubmit={handleSendMessage} 
+            sx={{ 
+              display: 'flex',
+              p: 2,
+              bgcolor: 'background.paper',
+              borderTop: '1px solid',
+              borderColor: 'divider'
+            }}
+          >
+            <TextField
+              fullWidth
+              placeholder="Ask a question..."
+              value={inputValue}
+              onChange={(e) => setInputValue(e.target.value)}
               variant="outlined"
-              clickable
               size="small"
+              disabled={loading}
+              sx={{ mr: 1 }}
             />
-          ))}
-        </Box>
-      </Box>
-      
-      {/* Input area */}
-      <Box component="form" onSubmit={handleSendMessage} sx={{ display: 'flex' }}>
-        <TextField
-          fullWidth
-          placeholder="Ask a question about this product..."
-          value={inputValue}
-          onChange={(e) => setInputValue(e.target.value)}
-          variant="outlined"
-          size="small"
-          disabled={loading}
-          sx={{ mr: 1 }}
-        />
-        <Button 
-          type="submit" 
-          variant="contained" 
-          onClick={handleSendMessage}
-          endIcon={<SendIcon />}
-          disabled={loading || !inputValue.trim()}
-        >
-          Send
-        </Button>
-      </Box>
-    </Paper>
+            <Button 
+              type="submit" 
+              variant="contained" 
+              onClick={handleSendMessage}
+              disabled={loading || !inputValue.trim()}
+              sx={{ minWidth: 'auto' }}
+            >
+              <SendIcon />
+            </Button>
+          </Box>
+        </Paper>
+      </Collapse>
+    </>
   );
 };
 

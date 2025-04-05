@@ -24,11 +24,21 @@ router.post('/analyze', async (req, res) => {
       price,
       ingredients: productAnalysis.ingredients,
       packagingDetails: productAnalysis.packaging,
-      carbonFootprint,
+      carbonFootprint: {
+        score: carbonFootprint.score,
+        details: {
+          manufacturing: carbonFootprint.details.manufacturing,
+          transportation: carbonFootprint.details.transportation,
+          packaging: carbonFootprint.details.packaging,
+          lifecycle: carbonFootprint.details.lifecycle
+        },
+        overallExplanation: carbonFootprint.overallExplanation
+      },
       similarProducts
     });
     
     await product.save();
+    
     
     res.status(201).json(product);
   } catch (error) {

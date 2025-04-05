@@ -16,19 +16,23 @@ import {
   Grid,
   Stepper,
   Step,
-  StepLabel
+  StepLabel,
+  useTheme
 } from '@mui/material';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
 import PersonAddIcon from '@mui/icons-material/PersonAdd';
 import NavigateNextIcon from '@mui/icons-material/NavigateNext';
 import NavigateBeforeIcon from '@mui/icons-material/NavigateBefore';
-import { useTheme } from '../contexts/ThemeContext';
+import { useTheme as useCustomTheme } from '../contexts/ThemeContext';
 import axios from 'axios';
+import SignupScene from '../components/3D/SignupScene';
+import '../styles/animations.css';
 
 const Signup = () => {
   const navigate = useNavigate();
-  const { darkMode } = useTheme();
+  const theme = useTheme();
+  const { darkMode } = useCustomTheme();
   const [activeStep, setActiveStep] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -102,12 +106,6 @@ const Signup = () => {
     setError('');
     
     try {
-      console.log('Attempting to sign up with:', {
-        firstName: formData.firstName,
-        lastName: formData.lastName,
-        email: formData.email
-      });
-      
       const response = await axios({
         method: 'post',
         url: 'http://localhost:5000/api/auth/signup',
@@ -122,20 +120,11 @@ const Signup = () => {
         }
       });
       
-      console.log('Signup successful:', response.data);
-      
-      // Store token and user data
       localStorage.setItem('token', response.data.token);
       localStorage.setItem('user', JSON.stringify(response.data.user));
       
-      // Dispatch custom event
-      window.dispatchEvent(new Event('auth-change'));
-      
-      // Redirect to home
       navigate('/');
     } catch (err) {
-      console.error('Registration error details:', err);
-      
       let errorMessage = 'Registration failed. Please try again.';
       
       if (err.response && err.response.data && err.response.data.message) {
@@ -164,6 +153,19 @@ const Signup = () => {
                 value={formData.firstName}
                 onChange={handleChange}
                 required
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    '& fieldset': {
+                      borderColor: 'rgba(255, 255, 255, 0.1)',
+                    },
+                    '&:hover fieldset': {
+                      borderColor: 'rgba(255, 255, 255, 0.2)',
+                    },
+                    '&.Mui-focused fieldset': {
+                      borderColor: '#4CAF50',
+                    },
+                  },
+                }}
               />
             </Box>
             <Box sx={{ flex: '1 1 calc(50% - 8px)', minWidth: '240px' }}>
@@ -174,6 +176,19 @@ const Signup = () => {
                 value={formData.lastName}
                 onChange={handleChange}
                 required
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    '& fieldset': {
+                      borderColor: 'rgba(255, 255, 255, 0.1)',
+                    },
+                    '&:hover fieldset': {
+                      borderColor: 'rgba(255, 255, 255, 0.2)',
+                    },
+                    '&.Mui-focused fieldset': {
+                      borderColor: '#4CAF50',
+                    },
+                  },
+                }}
               />
             </Box>
           </Box>
@@ -259,101 +274,157 @@ const Signup = () => {
   };
   
   return (
-    <Container maxWidth="md" sx={{ py: 8 }}>
-      <Card 
-        elevation={6}
-        sx={{ 
-          borderRadius: 4,
-          overflow: 'hidden',
-          transition: 'transform 0.3s ease-in-out',
-          '&:hover': {
-            transform: 'translateY(-5px)'
-          }
-        }}
-      >
-        <CardContent sx={{ p: 4 }}>
-          <Typography 
-            variant="h4" 
-            component="h1" 
-            align="center" 
-            gutterBottom
+    <Box sx={{ 
+      position: 'relative', 
+      minHeight: '100vh', 
+      overflow: 'hidden', 
+      background: darkMode ? '#0a0a0a' : '#f5f5f5',
+    }}>
+      {/* 3D Background Scene */}
+      <Box sx={{ 
+        position: 'fixed', 
+        top: 0, 
+        left: 0, 
+        width: '100%', 
+        height: '100%', 
+        zIndex: 0,
+        background: darkMode 
+          ? 'linear-gradient(to bottom, #000000, #0a0a0a)' 
+          : 'linear-gradient(to bottom, #e8f5e9, #f5f5f5)'
+      }}>
+        <SignupScene />
+      </Box>
+
+      {/* Content Container */}
+      <Box sx={{ position: 'relative', zIndex: 1 }}>
+        <Container maxWidth="md" sx={{ py: 8 }}>
+          <Card 
+            elevation={6}
+            className="float-in"
             sx={{ 
-              fontWeight: 700,
-              color: 'primary.main',
-              mb: 3
+              borderRadius: 4,
+              overflow: 'hidden',
+              transition: 'transform 0.3s ease-in-out',
+              background: darkMode 
+                ? 'rgba(30, 30, 30, 0.8)' 
+                : 'rgba(255, 255, 255, 0.9)',
+              backdropFilter: 'blur(10px)',
+              border: darkMode 
+                ? '1px solid rgba(255, 255, 255, 0.1)' 
+                : '1px solid rgba(0, 0, 0, 0.1)',
+              '&:hover': {
+                transform: 'translateY(-5px)',
+                boxShadow: '0 10px 30px rgba(76, 175, 80, 0.2)',
+              }
             }}
           >
-            Create Account
-          </Typography>
-          
-          <Stepper activeStep={activeStep} sx={{ mb: 4 }}>
-            {steps.map((label) => (
-              <Step key={label}>
-                <StepLabel>{label}</StepLabel>
-              </Step>
-            ))}
-          </Stepper>
-          
-          {error && (
-            <Alert severity="error" sx={{ mb: 3 }}>
-              {error}
-            </Alert>
-          )}
-          
-          <Box sx={{ mb: 4 }}>
-            {getStepContent(activeStep)}
-          </Box>
-          
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 3 }}>
-            <Button
-              disabled={activeStep === 0}
-              onClick={handleBack}
-              variant="outlined"
-              startIcon={<NavigateBeforeIcon />}
-            >
-              Back
-            </Button>
-            
-            {activeStep === steps.length - 1 ? (
-              <Button
-                variant="contained"
-                color="primary"
-                onClick={handleSubmit}
-                disabled={loading}
-                startIcon={<PersonAddIcon />}
+            <CardContent sx={{ p: 4 }}>
+              <Typography 
+                variant="h4" 
+                component="h1" 
+                align="center" 
+                gutterBottom
+                className="slide-in-delay-1"
+                sx={{ 
+                  fontWeight: 700,
+                  color: '#4CAF50',
+                  mb: 3,
+                  textShadow: '2px 2px 4px rgba(0,0,0,0.2)',
+                }}
               >
-                {loading ? 'Creating Account...' : 'Create Account'}
-              </Button>
-            ) : (
-              <Button
-                variant="contained"
-                color="primary"
-                onClick={handleNext}
-                endIcon={<NavigateNextIcon />}
-              >
-                Next
-              </Button>
-            )}
-          </Box>
-          
-          {activeStep === 0 && (
-            <Box sx={{ mt: 3, textAlign: 'center' }}>
-              <Typography variant="body2">
-                Already have an account?{' '}
-                <Link 
-                  component={RouterLink} 
-                  to="/login" 
-                  color="primary"
-                  sx={{ fontWeight: 600 }}
-                >
-                  Sign In
-                </Link>
+                Create Your Account
               </Typography>
-            </Box>
-          )}
-        </CardContent>
-      </Card>
-    </Container>
+
+              {error && (
+                <Alert severity="error" className="scale-in-delay-2" sx={{ mb: 3 }}>
+                  {error}
+                </Alert>
+              )}
+
+              <Stepper activeStep={activeStep} className="slide-in-delay-2" sx={{ mb: 4 }}>
+                {steps.map((label) => (
+                  <Step key={label}>
+                    <StepLabel>{label}</StepLabel>
+                  </Step>
+                ))}
+              </Stepper>
+
+              <Box sx={{ mb: 4 }} className="slide-in-delay-3">
+                {getStepContent(activeStep)}
+              </Box>
+
+              <Box sx={{ display: 'flex', justifyContent: 'space-between' }} className="float-in-delay-3">
+                <Button
+                  disabled={activeStep === 0}
+                  onClick={handleBack}
+                  startIcon={<NavigateBeforeIcon />}
+                  sx={{
+                    color: '#4CAF50',
+                    '&:hover': {
+                      backgroundColor: 'rgba(76, 175, 80, 0.1)',
+                    },
+                  }}
+                >
+                  Back
+                </Button>
+                {activeStep === steps.length - 1 ? (
+                  <Button
+                    variant="contained"
+                    onClick={handleSubmit}
+                    disabled={loading}
+                    endIcon={<PersonAddIcon />}
+                    sx={{
+                      background: 'linear-gradient(45deg, #4CAF50, #45a049)',
+                      color: 'white',
+                      '&:hover': {
+                        background: 'linear-gradient(45deg, #45a049, #4CAF50)',
+                      },
+                    }}
+                  >
+                    {loading ? 'Creating Account...' : 'Create Account'}
+                  </Button>
+                ) : (
+                  <Button
+                    variant="contained"
+                    onClick={handleNext}
+                    endIcon={<NavigateNextIcon />}
+                    sx={{
+                      background: 'linear-gradient(45deg, #4CAF50, #45a049)',
+                      color: 'white',
+                      '&:hover': {
+                        background: 'linear-gradient(45deg, #45a049, #4CAF50)',
+                      },
+                    }}
+                  >
+                    Next
+                  </Button>
+                )}
+              </Box>
+
+              <Box sx={{ mt: 3, textAlign: 'center' }} className="float-in-delay-3">
+                <Typography variant="body2" sx={{ color: darkMode ? '#b0b0b0' : '#666666' }}>
+                  Already have an account?{' '}
+                  <Link 
+                    component={RouterLink} 
+                    to="/login" 
+                    sx={{ 
+                      color: '#4CAF50',
+                      fontWeight: 600,
+                      textDecoration: 'none',
+                      '&:hover': {
+                        textDecoration: 'underline',
+                      },
+                    }}
+                  >
+                    Sign In
+                  </Link>
+                </Typography>
+              </Box>
+            </CardContent>
+          </Card>
+        </Container>
+      </Box>
+    </Box>
   );
 };
 

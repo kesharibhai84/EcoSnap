@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSpring, animated } from '@react-spring/web';
 import { 
@@ -23,6 +23,16 @@ const ProductCard3D = ({ product }) => {
   const [hovered, setHovered] = useState(false);
   const cardRef = useRef(null);
 
+  // Reset animation state on mount
+  useEffect(() => {
+    api.start({
+      transform: 'perspective(1000px) rotateX(0deg) rotateY(0deg) scale(1)',
+      rotateX: 0,
+      rotateY: 0,
+      shadow: darkMode ? '0 10px 30px -5px rgba(0,0,0,0.5)' : '0 10px 30px -5px rgba(0,0,0,0.1)',
+    });
+  }, [darkMode]);
+
   // Calculate eco rating (1-5 stars)
   const getEcoRating = (score) => {
     return Math.max(1, Math.min(5, Math.round(score / 20)));
@@ -42,7 +52,7 @@ const ProductCard3D = ({ product }) => {
     transform: 'perspective(1000px) rotateX(0deg) rotateY(0deg) scale(1)',
     rotateX: 0,
     rotateY: 0,
-    shadow: darkMode ? '0 10px 30px -5px rgba(0,0,0,0.3)' : '0 10px 30px -5px rgba(0,0,0,0.2)',
+    shadow: darkMode ? '0 10px 30px -5px rgba(0,0,0,0.5)' : '0 10px 30px -5px rgba(0,0,0,0.1)',
     config: { mass: 1, tension: 300, friction: 40 }
   }));
 
@@ -64,7 +74,7 @@ const ProductCard3D = ({ product }) => {
       rotateX: rotateXVal,
       rotateY: rotateYVal,
       transform: `perspective(1000px) rotateX(${rotateXVal}deg) rotateY(${rotateYVal}deg) scale(1.05)`,
-      shadow: `0 ${15 + Math.abs(rotateXVal)}px ${30 + Math.abs(rotateYVal)}px -5px rgba(0,0,0,${darkMode ? 0.4 : 0.2})`,
+      shadow: `0 ${15 + Math.abs(rotateXVal)}px ${30 + Math.abs(rotateYVal)}px -5px rgba(0,0,0,${darkMode ? 0.6 : 0.15})`,
     });
     
     setHovered(true);
@@ -76,7 +86,7 @@ const ProductCard3D = ({ product }) => {
       rotateX: 0,
       rotateY: 0,
       transform: 'perspective(1000px) rotateX(0deg) rotateY(0deg) scale(1)',
-      shadow: darkMode ? '0 10px 30px -5px rgba(0,0,0,0.3)' : '0 10px 30px -5px rgba(0,0,0,0.2)',
+      shadow: darkMode ? '0 10px 30px -5px rgba(0,0,0,0.5)' : '0 10px 30px -5px rgba(0,0,0,0.1)',
     });
     
     setHovered(false);
@@ -99,8 +109,8 @@ const ProductCard3D = ({ product }) => {
         transformStyle: 'preserve-3d',
         transition: 'background-color 0.3s ease',
         backgroundColor: hovered 
-          ? (darkMode ? '#2a2a2a' : '#f8f8f8') 
-          : muiTheme.palette.background.paper,
+          ? (darkMode ? '#1a1a1a' : '#ffffff') 
+          : (darkMode ? '#2a2a2a' : '#f8f8f8'),
         cursor: 'pointer'
       }}
       className="product-card-3d"
@@ -142,7 +152,7 @@ const ProductCard3D = ({ product }) => {
             objectFit: 'cover',
             transform: hovered ? 'scale(1.05) translateZ(30px)' : 'scale(1) translateZ(0)',
             transition: 'transform 0.3s ease',
-            filter: darkMode ? 'brightness(0.9)' : 'none'
+            filter: darkMode ? 'brightness(0.85)' : 'none'
           }}
         />
       </Box>
@@ -150,7 +160,8 @@ const ProductCard3D = ({ product }) => {
       <CardContent 
         sx={{ 
           transform: hovered ? 'translateZ(20px)' : 'translateZ(0)',
-          transition: 'transform 0.3s ease'
+          transition: 'transform 0.3s ease',
+          color: darkMode ? '#ffffff' : 'inherit'
         }}
       >
         <Typography 
@@ -160,7 +171,8 @@ const ProductCard3D = ({ product }) => {
           noWrap
           sx={{ 
             fontWeight: 600,
-            mb: 1
+            mb: 1,
+            color: darkMode ? '#ffffff' : 'inherit'
           }}
         >
           {product.name}
@@ -174,7 +186,7 @@ const ProductCard3D = ({ product }) => {
             opacity: 0.9
           }}
         >
-          <Typography variant="body2" sx={{ mr: 1 }}>
+          <Typography variant="body2" sx={{ mr: 1, color: darkMode ? '#ffffff' : 'inherit' }}>
             Eco Rating:
           </Typography>
           <Rating
@@ -182,20 +194,21 @@ const ProductCard3D = ({ product }) => {
             precision={0.5}
             readOnly
             size="small"
-            emptyIcon={<StarIcon style={{ opacity: 0.3 }} fontSize="inherit" />}
+            emptyIcon={<StarIcon style={{ opacity: darkMode ? 0.5 : 0.3 }} fontSize="inherit" />}
           />
         </Box>
         
         <Typography 
           variant="body2" 
-          color="text.secondary"
+          color={darkMode ? "text.secondary" : "text.secondary"}
           sx={{ 
             height: 40, 
             overflow: 'hidden', 
             textOverflow: 'ellipsis', 
             display: '-webkit-box',
             WebkitLineClamp: 2,
-            WebkitBoxOrient: 'vertical'
+            WebkitBoxOrient: 'vertical',
+            color: darkMode ? 'rgba(255, 255, 255, 0.7)' : 'inherit'
           }}
         >
           {product.ingredients.slice(0, 2).join(', ')}

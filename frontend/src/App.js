@@ -11,6 +11,7 @@ import Signup from './pages/Signup';
 import Profile from './pages/Profile';
 import AuthTest from './pages/AuthTest';
 import { ThemeProvider } from './contexts/ThemeContext';
+import './styles/animations.css';
 // Remove the import of 3dEffects.css for now until we create it
 // import './styles/3dEffects.css';
 
