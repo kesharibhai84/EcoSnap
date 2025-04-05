@@ -17,6 +17,8 @@ router.post('/analyze', async (req, res) => {
     
     // Calculate carbon footprint
     const carbonFootprint = await calculateCarbonFootprint(productAnalysis);
+
+    const ingredients = productAnalysis.ingredients;
     
     // Store sensitive data in Midnight
     const sensitiveData = {
@@ -42,7 +44,8 @@ router.post('/analyze', async (req, res) => {
       imageUrl,
       price,
       midnightId: midnightResult.midnightId,
-      similarProducts
+      similarProducts,
+      ingredients
     });
     
     await product.save();

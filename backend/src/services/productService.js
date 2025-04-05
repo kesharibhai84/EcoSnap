@@ -9,56 +9,33 @@ const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 async function scrapeProductDetails(productName) {
   try {
     // Array of potential sources to scrape
-    const sources = [
-      {
-        url: `https://www.amazon.in/s?k=${encodeURIComponent(productName)}`,
-        selectors: {
-          ingredients: '#feature-bullets .a-list-item, #productDetails_techSpec_section_1 .prodDetAttrValue, #productDetails_db_sections .content',
-          productInfo: '#productDescription p, #feature-bullets .a-list-item',
-          packaging: '#important-information .a-section, #sustainability-section'
-        }
-      },
-      {
-        url: `https://www.flipkart.com/search?q=${encodeURIComponent(productName)}`,
-        selectors: {
-          ingredients: '._2418kt, ._3nUwn8, .RmoJUa',
-          productInfo: '._1mXcCf, ._2-riNZ',
-          packaging: '._2-N8zT, ._1UhVsV'
-        }
-      },
-      {
-        url: `https://www.nykaa.com/search/result/?q=${encodeURIComponent(productName)}`,
-        selectors: {
-          ingredients: '.product-ingredients-content, .product-description p',
-          productInfo: '.product-description, .product-overview',
-          packaging: '.product-overview p'
-        }
-      },
-      {
-        url: `https://www.bigbasket.com/ps/?q=${encodeURIComponent(productName)}`,
-        selectors: {
-          ingredients: '.pd-ingredient-content, .mt-20 p',
-          productInfo: '.pd-description-content, .pd-about-content',
-          packaging: '.pd-about-content'
-        }
-      },
-      {
-        url: `https://www.1mg.com/search/all?name=${encodeURIComponent(productName)}`,
-        selectors: {
-          ingredients: '.DrugOverview__description___1Jwqq, .ProductDescription__description-content___A_qCZ',
-          productInfo: '.DrugOverview__content___22ZBX, .ProductDescription__description-content___A_qCZ',
-          packaging: '.PackSizeLabel__pack-size___3jScl'
-        }
-      },
-      {
-        url: `https://incidecoder.com/search?query=${encodeURIComponent(productName)}`,
-        selectors: {
-          ingredients: '.ingredients-list, .ingred-list',
-          productInfo: '.product-description',
-          packaging: '.product-details'
-        }
+    // here use gemini api to find ingredients and packaging of the productName and store in the below scrapedData
+
+    
+    // Use Gemini API to get product details
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+
+    const prompt = `Analyze this product: "${productName}"
+    
+    Provide detailed information about:
+    1. List of ingredients/materials used
+    2. Packaging materials used
+    3. Whether the packaging is recyclable
+    
+    Format the response in JSON:
+    {
+      "ingredients": ["ingredient1", "ingredient2", ...],
+      "packaging": {
+        "materials": ["material1", "material2", ...],
+        "recyclable": true/false
       }
-    ];
+    }
+    
+    Be specific and realistic with the ingredients and materials.`;
+
+    const result = await model.generateContent([{ text: prompt }]);
+    const response = await result.response;
+    const text = response.text().trim();
 
     let scrapedData = {
       ingredients: [],
@@ -69,53 +46,32 @@ async function scrapeProductDetails(productName) {
       additionalInfo: []
     };
 
-    for (const source of sources) {
-      try {
-        const response = await axios.get(source.url, {
-          headers: {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-          }
-        });
-
-        const $ = cheerio.load(response.data);
-
-        // Extract ingredients
-        $(source.selectors.ingredients).each((_, element) => {
-          const text = $(element).text().trim();
-          if (text && !scrapedData.ingredients.includes(text)) {
-            scrapedData.ingredients.push(text);
-          }
-        });
-
-        // Extract product info
-        $(source.selectors.productInfo).each((_, element) => {
-          const text = $(element).text().trim();
-          if (text && !scrapedData.additionalInfo.includes(text)) {
-            scrapedData.additionalInfo.push(text);
-          }
-        });
-
-        // Extract packaging info
-        $(source.selectors.packaging).each((_, element) => {
-          const text = $(element).text().trim().toLowerCase();
-          if (text.includes('recycl')) {
-            scrapedData.packaging.recyclable = true;
-          }
-          if (text.includes('plastic') || text.includes('cardboard') || text.includes('glass')) {
-            const materials = text.match(/(plastic|cardboard|glass|metal|paper)/g);
-            if (materials) {
-              scrapedData.packaging.materials.push(...materials);
-            }
-          }
-        });
-
-        if (scrapedData.ingredients.length > 0) {
-          break; // Stop if we found ingredients from one source
-        }
-      } catch (error) {
-        console.error(`Error scraping from ${source.url}:`, error.message);
-        continue; // Try next source if one fails
-      }
+    try {
+      // Clean the response text by removing markdown code block syntax
+      const cleanedText = text.replace(/```json\n?|\n?```/g, '').trim();
+      const geminiData = JSON.parse(cleanedText);
+      
+      // Update scrapedData with Gemini response
+      scrapedData.ingredients = geminiData.ingredients || [];
+      // scrapedData.packaging.materials = geminiData.packaging?.materials || [];
+      
+      // // Handle detailed recyclable information
+      // if (typeof geminiData.packaging?.recyclable === 'object') {
+      //   // If recyclable is an object with material-specific info
+      //   const recyclableInfo = geminiData.packaging.recyclable;
+      //   // Consider packaging recyclable if at least one major component is recyclable
+      //   scrapedData.packaging.recyclable = Object.values(recyclableInfo).some(
+      //     value => value === true || (typeof value === 'string' && value.toLowerCase().includes('recyclable'))
+      //   );
+      // } else {
+      //   // If recyclable is a simple boolean
+      //   scrapedData.packaging.recyclable = geminiData.packaging?.recyclable || false;
+      // }
+      
+      console.log(`Successfully retrieved product details for: ${productName}`,  scrapedData.ingredients);
+    } catch (parseError) {
+      console.error('Error parsing Gemini response:', parseError);
+      console.error('Raw response:', text);
     }
 
     return scrapedData;
@@ -352,7 +308,7 @@ async function findSimilarProducts(productName, price) {
           }
         });
       } catch (error) {
-        console.error(`Error scraping from ${source.name}:`, error.message);
+        console.error(`Error scraping from ${source.name}: ${error.message}`);
         continue; // Try next source if one fails
       }
     }
@@ -530,7 +486,7 @@ Only return a simple JSON array of product names. Example:
               
               console.log(`Successfully found complete details for: ${name}`);
             } catch (pageError) {
-              console.error(`Error scraping product page for ${name}:`, pageError.message);
+              console.error(`Error scraping product page for ${name}: ${pageError.message}`);
               // Still add the product with basic details
               similarProducts.push({
                 source: 'Amazon India',
@@ -547,7 +503,7 @@ Only return a simple JSON array of product names. Example:
             }
           }
         } catch (error) {
-          console.error(`Error scraping details for ${productNameFromGemini}:`, error.message);
+          console.error(`Error scraping details for ${productNameFromGemini}: ${error.message}`);
           // Continue to next product
         }
       }
@@ -794,4 +750,4 @@ module.exports = {
   calculateCarbonFootprint,
   answerProductQuestion,
   chatWithProduct
-}; 
+};

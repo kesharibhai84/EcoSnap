@@ -72,6 +72,9 @@ const ProductAnalysis = () => {
         price: parseFloat(price),
       });
 
+      console.log("hiii ", response.data);
+      
+
       setAnalysis(response.data);
     } catch (err) {
       setError(err.response?.data?.message || 'An error occurred during analysis');
