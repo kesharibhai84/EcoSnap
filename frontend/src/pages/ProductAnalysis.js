@@ -14,22 +14,14 @@ import {
 } from '@mui/material';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import SimpleChatBot from '../components/SimpleChatBot';
-import api from '../utils/axiosConfig';
-import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
 
 const ProductAnalysis = () => {
-  const navigate = useNavigate();
   const [image, setImage] = useState(null);
   const [price, setPrice] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [analysis, setAnalysis] = useState(null);
-  const [formData, setFormData] = useState({
-    name: '',
-    description: '',
-    price: '',
-    imageUrl: ''
-  });
 
   const handleImageUpload = (event) => {
     const file = event.target.files[0];
@@ -38,35 +30,28 @@ const ProductAnalysis = () => {
     }
   };
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
-  };
+  const handleSubmit = async () => {
+    if (!image || !price) {
+      setError('Please provide both an image and price');
+      return;
+    }
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
     setLoading(true);
     setError('');
 
     try {
-      // Validate form data
-      if (!formData.name || !formData.price || !formData.imageUrl) {
-        throw new Error('Please fill in all required fields');
-      }
+      // Convert image to base64
+      const base64Image = await convertImageToBase64(image);
 
-      const response = await api.post('/api/products/analyze', {
-        ...formData,
-        price: parseFloat(formData.price)
+      // Send to backend
+      const response = await axios.post('http://localhost:5000/api/products/analyze', {
+        imageUrl: base64Image,
+        price: parseFloat(price),
       });
 
-      console.log('Analysis successful:', response.data);
-      navigate('/products'); // Redirect to products page after successful analysis
+      setAnalysis(response.data);
     } catch (err) {
-      console.error('Error analyzing product:', err);
-      setError(err.response?.data?.message || err.message || 'Failed to analyze product');
+      setError(err.response?.data?.message || 'An error occurred during analysis');
     } finally {
       setLoading(false);
     }
@@ -90,91 +75,14 @@ const ProductAnalysis = () => {
   };
 
   return (
-    <Container maxWidth="md" sx={{ py: 4 }}>
-      <Typography 
-        variant="h4" 
-        component="h1" 
-        gutterBottom
-        sx={{ textAlign: 'center', mb: 4 }}
-      >
-        Analyze Product
+    <Container maxWidth="lg" sx={{ py: 4 }}>
+      <Typography variant="h4" component="h1" gutterBottom>
+        Product Analysis
       </Typography>
 
-      <Card elevation={3}>
-        <CardContent>
-          {error && (
-            <Alert severity="error" sx={{ mb: 3 }}>
-              {error}
-            </Alert>
-          )}
-
-          <Box component="form" onSubmit={handleSubmit}>
-            <TextField
-              fullWidth
-              label="Product Name"
-              name="name"
-              value={formData.name}
-              onChange={handleChange}
-              required
-              margin="normal"
-            />
-
-            <TextField
-              fullWidth
-              label="Description"
-              name="description"
-              value={formData.description}
-              onChange={handleChange}
-              multiline
-              rows={3}
-              margin="normal"
-            />
-
-            <TextField
-              fullWidth
-              label="Price"
-              name="price"
-              type="number"
-              value={formData.price}
-              onChange={handleChange}
-              required
-              margin="normal"
-              InputProps={{
-                inputProps: { min: 0, step: "0.01" }
-              }}
-            />
-
-            <TextField
-              fullWidth
-              label="Image URL"
-              name="imageUrl"
-              value={formData.imageUrl}
-              onChange={handleChange}
-              required
-              margin="normal"
-            />
-
-            <Button
-              type="submit"
-              variant="contained"
-              color="primary"
-              fullWidth
-              size="large"
-              disabled={loading}
-              sx={{ mt: 3 }}
-            >
-              {loading ? (
-                <CircularProgress size={24} color="inherit" />
-              ) : (
-                'Analyze Product'
-              )}
-            </Button>
-          </Box>
-        </CardContent>
-      </Card>
-
-      {!analysis && (
-        <Box sx={{ mt: 4 }}>
+      {!analysis ? (
+        // Upload and analysis form
+        <Box sx={{ mb: 4 }}>
           <input
             accept="image/*"
             style={{ display: 'none' }}
@@ -202,11 +110,36 @@ const ProductAnalysis = () => {
               />
             </Box>
           )}
-        </Box>
-      )}
 
-      {analysis && (
-        <Grid container spacing={3} sx={{ mt: 4 }}>
+          <TextField
+            fullWidth
+            label="Product Price"
+            type="number"
+            value={price}
+            onChange={(e) => setPrice(e.target.value)}
+            sx={{ mt: 2 }}
+          />
+
+          <Button
+            variant="contained"
+            color="primary"
+            onClick={handleSubmit}
+            disabled={loading || !image || !price}
+            sx={{ mt: 2 }}
+          >
+            {loading ? <CircularProgress size={24} /> : 'Analyze Product'}
+          </Button>
+
+          {error && (
+            <Alert severity="error" sx={{ mt: 2 }}>
+              {error}
+            </Alert>
+          )}
+        </Box>
+      ) : (
+        // Product analysis result and chatbot
+        <Grid container spacing={3}>
+          {/* Product details column */}
           <Grid item xs={12} md={7}>
             <Card>
               <CardContent>
@@ -264,6 +197,7 @@ const ProductAnalysis = () => {
             </Card>
           </Grid>
           
+          {/* Chatbot column */}
           <Grid item xs={12} md={5}>
             <Typography variant="h6" gutterBottom>
               Ask About This Product

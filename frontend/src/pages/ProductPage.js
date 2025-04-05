@@ -1,27 +1,29 @@
 import React, { useState, useEffect } from 'react';
-import api from '../utils/axiosConfig'; // Use the configured axios instance
+import { useParams } from 'react-router-dom';
+import axios from 'axios';
 import ProductDetails from '../components/ProductDetails';
 
 const ProductPage = () => {
-  const [products, setProducts] = useState([]);
+  const { id } = useParams();
+  const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    const fetchProducts = async () => {
+    const fetchProduct = async () => {
       try {
-        const response = await api.get('/api/products');
-        setProducts(response.data);
+        const response = await axios.get(`/api/products/${id}`);
+        setProduct(response.data);
       } catch (err) {
-        setError('Failed to load products');
-        console.error('Error fetching products:', err);
+        setError('Failed to load product details');
+        console.error('Error fetching product:', err);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchProducts();
-  }, []);
+    fetchProduct();
+  }, [id]);
 
   if (loading) {
     return (
@@ -31,24 +33,18 @@ const ProductPage = () => {
     );
   }
 
-  if (error) {
+  if (error || !product) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
           <h2 className="text-xl font-bold text-red-600 mb-2">Error</h2>
-          <p>{error}</p>
+          <p>{error || 'Product not found'}</p>
         </div>
       </div>
     );
   }
 
-  return (
-    <div className="max-w-4xl mx-auto p-4">
-      {products.map(product => (
-        <ProductDetails key={product._id} product={product} />
-      ))}
-    </div>
-  );
+  return <ProductDetails product={product} />;
 };
 
 export default ProductPage; 
