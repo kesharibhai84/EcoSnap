@@ -27,6 +27,7 @@ import NavigateBeforeIcon from '@mui/icons-material/NavigateBefore';
 import { useTheme as useCustomTheme } from '../contexts/ThemeContext';
 import axios from 'axios';
 import SignupScene from '../components/3D/SignupScene';
+import CloudflareTurnstile from '../components/CloudflareTurnstile';
 import '../styles/animations.css';
 
 const Signup = () => {
@@ -36,6 +37,7 @@ const Signup = () => {
   const [activeStep, setActiveStep] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [turnstileToken, setTurnstileToken] = useState('');
   
   // Form data
   const [formData, setFormData] = useState({
@@ -95,8 +97,17 @@ const Signup = () => {
     setError('');
   };
   
+  const handleTurnstileVerify = (token) => {
+    setTurnstileToken(token);
+  };
+  
   // Handle form submission
   const handleSubmit = async () => {
+    if (!turnstileToken) {
+      setError('Please complete the verification');
+      return;
+    }
+    
     if (!isStepValid()) {
       setError('Please fill in all fields correctly');
       return;
@@ -106,34 +117,22 @@ const Signup = () => {
     setError('');
     
     try {
-      const response = await axios({
-        method: 'post',
-        url: 'http://localhost:5000/api/auth/signup',
-        data: {
-          firstName: formData.firstName,
-          lastName: formData.lastName,
-          email: formData.email,
-          password: formData.password
-        },
-        headers: {
-          'Content-Type': 'application/json'
-        }
+      const response = await axios.post('http://localhost:5000/api/auth/signup', {
+        ...formData,
+        turnstileToken
       });
       
+      // Store the token in localStorage
       localStorage.setItem('token', response.data.token);
+      
+      // Store user data in localStorage
       localStorage.setItem('user', JSON.stringify(response.data.user));
       
+      // Navigate to the home page
       navigate('/');
-    } catch (err) {
-      let errorMessage = 'Registration failed. Please try again.';
-      
-      if (err.response && err.response.data && err.response.data.message) {
-        errorMessage = err.response.data.message;
-      } else if (err.message) {
-        errorMessage = err.message;
-      }
-      
-      setError(errorMessage);
+    } catch (error) {
+      console.error('Signup error:', error);
+      setError(error.response?.data?.message || 'Error during signup');
     } finally {
       setLoading(false);
     }
@@ -231,18 +230,28 @@ const Signup = () => {
             <TextField
               fullWidth
               label="Confirm Password"
-              name="confirmPassword"
               value={formData.confirmPassword}
-              onChange={handleChange}
+              onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
+              margin="normal"
               type={showPassword ? 'text' : 'password'}
               required
-              error={formData.password !== formData.confirmPassword && formData.confirmPassword !== ''}
-              helperText={
-                formData.password !== formData.confirmPassword && formData.confirmPassword !== '' 
-                  ? "Passwords do not match" 
-                  : ""
-              }
+              InputProps={{
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <IconButton
+                      onClick={() => setShowPassword(!showPassword)}
+                      edge="end"
+                    >
+                      {showPassword ? <VisibilityOffIcon /> : <VisibilityIcon />}
+                    </IconButton>
+                  </InputAdornment>
+                ),
+              }}
             />
+            
+            <Box sx={{ my: 2, display: 'flex', justifyContent: 'center' }}>
+              <CloudflareTurnstile onVerify={handleTurnstileVerify} />
+            </Box>
           </>
         );
       case 2:

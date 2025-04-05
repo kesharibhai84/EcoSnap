@@ -45,7 +45,7 @@ router.post('/signup', async (req, res) => {
       { expiresIn: '7d' }
     );
     
-    // Return user data without password
+    // Return user data without password and include the token
     const userResponse = user.toObject();
     delete userResponse.password;
     
@@ -55,8 +55,8 @@ router.post('/signup', async (req, res) => {
       token
     });
   } catch (error) {
-    console.error('Registration error:', error);
-    res.status(500).json({ message: 'Registration failed', error: error.message });
+    console.error('Signup error:', error);
+    res.status(500).json({ message: 'Error registering user', error: error.message });
   }
 });
 

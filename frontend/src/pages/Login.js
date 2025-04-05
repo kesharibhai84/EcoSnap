@@ -21,6 +21,7 @@ import LoginIcon from '@mui/icons-material/Login';
 import { useTheme as useCustomTheme } from '../contexts/ThemeContext';
 import axios from 'axios';
 import LoginScene from '../components/3D/LoginScene';
+import CloudflareTurnstile from '../components/CloudflareTurnstile';
 import '../styles/animations.css';
 
 const Login = () => {
@@ -32,6 +33,11 @@ const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [turnstileToken, setTurnstileToken] = useState('');
+  
+  const handleTurnstileVerify = (token) => {
+    setTurnstileToken(token);
+  };
   
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -41,13 +47,19 @@ const Login = () => {
       return;
     }
     
+    if (!turnstileToken) {
+      setError('Please complete the verification');
+      return;
+    }
+    
     setLoading(true);
     setError('');
     
     try {
       const response = await axios.post('http://localhost:5000/api/auth/login', {
         email,
-        password
+        password,
+        turnstileToken
       });
       
       localStorage.setItem('token', response.data.token);
@@ -160,8 +172,6 @@ const Login = () => {
                   margin="normal"
                   type={showPassword ? 'text' : 'password'}
                   required
-                  className="slide-in-delay-3"
-                  sx={{ mb: 3 }}
                   InputProps={{
                     endAdornment: (
                       <InputAdornment position="end">
@@ -175,6 +185,10 @@ const Login = () => {
                     ),
                   }}
                 />
+                
+                <Box sx={{ my: 2, display: 'flex', justifyContent: 'center' }}>
+                  <CloudflareTurnstile onVerify={handleTurnstileVerify} />
+                </Box>
                 
                 <Button
                   type="submit"
