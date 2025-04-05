@@ -34,11 +34,9 @@ import ProductChatBot from '../components/ProductChatBot';
 import InfoIcon from '@mui/icons-material/Info';
 import LocalOfferIcon from '@mui/icons-material/LocalOffer';
 import NatureIcon from '@mui/icons-material/Nature';
-import { useAuth } from '../contexts/AuthContext';
 
 const ProductAnalysis = () => {
   const theme = useTheme();
-  const { user } = useAuth();
   const [image, setImage] = useState(null);
   const [price, setPrice] = useState('');
   const [loading, setLoading] = useState(false);

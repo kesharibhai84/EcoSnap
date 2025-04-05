@@ -25,7 +25,6 @@ import PersonAddIcon from '@mui/icons-material/PersonAdd';
 import NavigateNextIcon from '@mui/icons-material/NavigateNext';
 import NavigateBeforeIcon from '@mui/icons-material/NavigateBefore';
 import { useTheme as useCustomTheme } from '../contexts/ThemeContext';
-import { useAuth } from '../contexts/AuthContext';
 import axios from 'axios';
 import SignupScene from '../components/3D/SignupScene';
 import CloudflareTurnstile from '../components/CloudflareTurnstile';
@@ -35,7 +34,6 @@ const Signup = () => {
   const navigate = useNavigate();
   const theme = useTheme();
   const { darkMode } = useCustomTheme();
-  const { login } = useAuth();
   const [activeStep, setActiveStep] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -124,8 +122,11 @@ const Signup = () => {
         turnstileToken
       });
       
-      // Use the login function from AuthContext to handle the login
-      login(response.data.token, response.data.user);
+      // Store the token in localStorage
+      localStorage.setItem('token', response.data.token);
+      
+      // Store user data in localStorage
+      localStorage.setItem('user', JSON.stringify(response.data.user));
       
       // Navigate to the home page
       navigate('/');
