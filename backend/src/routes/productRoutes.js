@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const Product = require('../models/Product');
-const { analyzeProduct, findSimilarProducts, calculateCarbonFootprint } = require('../services/productService');
+const { analyzeProduct, findSimilarProducts, calculateCarbonFootprint, answerProductQuestion } = require('../services/productService');
 
 // Upload and analyze a new product
 router.post('/analyze', async (req, res) => {
@@ -30,6 +30,7 @@ router.post('/analyze', async (req, res) => {
     
     await product.save();
     
+    
     res.status(201).json(product);
   } catch (error) {
     console.error('Error analyzing product:', error);
@@ -57,6 +58,40 @@ router.get('/:id', async (req, res) => {
     res.json(product);
   } catch (error) {
     res.status(500).json({ message: 'Error fetching product' });
+  }
+});
+
+// Add this new route before module.exports
+router.post('/:id/chat', async (req, res) => {
+  try {
+    const { question } = req.body;
+    
+    if (!question) {
+      return res.status(400).json({ 
+        message: 'Question is required' 
+      });
+    }
+    
+    const product = await Product.findById(req.params.id);
+    if (!product) {
+      return res.status(404).json({ 
+        message: 'Product not found' 
+      });
+    }
+    
+    const answer = await answerProductQuestion(product, question);
+    
+    res.json({ 
+      answer,
+      productId: product._id,
+      question
+    });
+  } catch (error) {
+    console.error('Error in product chat:', error);
+    res.status(500).json({ 
+      message: 'Error processing chat request',
+      error: error.message 
+    });
   }
 });
 
