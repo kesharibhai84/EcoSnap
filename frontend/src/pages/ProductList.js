@@ -178,7 +178,7 @@ const ProductList = () => {
     });
     sceneRef.current.particles = [];
 
-    const ecoScore = activeProduct.carbonFootprint.score;
+    const ecoScore = activeProduct.carbonFootprint?.score ?? 50; // Default to 50 if score is not available
     const particleCount = Math.floor(ecoScore / 10) + 8;
 
     // Color based on eco score (green for high, red for low)
@@ -275,7 +275,7 @@ const ProductList = () => {
     product.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const getEcoRating = (score) => score / 20; // 0-100 => 0-5
+  const getEcoRating = (score) => (score ?? 50) / 20; // Default to 50 if score is not available
 
   const handleCardClick = (product) => {
     setActiveProduct(product);
@@ -286,11 +286,12 @@ const ProductList = () => {
   };
 
   const getScoreColor = (score) => {
-    if (score >= 80) return '#4caf50'; // green
-    if (score >= 60) return '#8bc34a'; // light green
-    if (score >= 40) return '#ffc107'; // amber
-    if (score >= 20) return '#ff9800'; // orange
-    return '#f44336'; // red
+    if (score === undefined || score === null) return '#757575'; // Default gray for no score
+    if (score >= 80) return '#4caf50'; // Green
+    if (score >= 60) return '#8bc34a'; // Light green
+    if (score >= 40) return '#ffc107'; // Yellow
+    if (score >= 20) return '#ff9800'; // Orange
+    return '#f44336'; // Red
   };
 
   return (
@@ -399,7 +400,7 @@ const ProductList = () => {
                         position: 'absolute',
                         top: 12,
                         right: 12,
-                        bgcolor: getScoreColor(product.carbonFootprint.score),
+                        bgcolor: getScoreColor(product.carbonFootprint?.score),
                         color: 'white',
                         borderRadius: '50%',
                         width: 40,
@@ -412,7 +413,7 @@ const ProductList = () => {
                         zIndex: 1,
                       }}
                     >
-                      {product.carbonFootprint.score}
+                      {product.carbonFootprint?.score ?? 'N/A'}
                     </Box>
 
                     {/* Fixed-height image area: 200px */}
@@ -485,7 +486,7 @@ const ProductList = () => {
                             mb: 1,
                           }}
                         >
-                          ${product.price}
+                          ₹{product.price}
                         </Typography>
                       </Box>
 
@@ -495,7 +496,7 @@ const ProductList = () => {
                             Eco Rating:
                           </Typography>
                           <Rating
-                            value={getEcoRating(product.carbonFootprint.score)}
+                            value={getEcoRating(product.carbonFootprint?.score)}
                             precision={0.5}
                             readOnly
                             size="small"
@@ -503,7 +504,7 @@ const ProductList = () => {
                           />
                         </Box>
 
-                        <Button
+                        {/* <Button
                           variant="contained"
                           fullWidth
                           startIcon={<ShoppingCartIcon />}
@@ -514,7 +515,7 @@ const ProductList = () => {
                           }}
                         >
                           Add to Cart
-                        </Button>
+                        </Button> */}
                       </Box>
                     </CardContent>
                   </Card>
@@ -607,9 +608,9 @@ const ProductList = () => {
 
                       <Chip
                         size="small"
-                        label={`Score: ${product.carbonFootprint.score}`}
+                        label={`Score: ${product.carbonFootprint?.score ?? 'N/A'}`}
                         sx={{
-                          bgcolor: getScoreColor(product.carbonFootprint.score),
+                          bgcolor: getScoreColor(product.carbonFootprint?.score),
                           color: 'white',
                           fontWeight: 'bold',
                         }}
@@ -621,7 +622,7 @@ const ProductList = () => {
                         Eco Rating:
                       </Typography>
                       <Rating
-                        value={getEcoRating(product.carbonFootprint.score)}
+                        value={getEcoRating(product.carbonFootprint?.score)}
                         precision={0.5}
                         readOnly
                         size="small"
@@ -630,15 +631,15 @@ const ProductList = () => {
 
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 'auto' }}>
                       <Typography variant="h6" sx={{ fontWeight: 700, color: themeColors.primary }}>
-                        ${product.price}
+                        ₹{product.price}
                       </Typography>
-                      <Button
+                      {/* <Button
                         variant="contained"
                         startIcon={<ShoppingCartIcon />}
                         sx={{ borderRadius: 2, textTransform: 'none', fontWeight: 600 }}
                       >
                         Add to Cart
-                      </Button>
+                      </Button> */}
                     </Box>
                   </Box>
                 </Card>
