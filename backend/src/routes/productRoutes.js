@@ -104,4 +104,98 @@ router.post('/:id/chat', async (req, res) => {
   }
 });
 
+// Get detailed similar products by product ID
+router.get('/:id/similar-products', async (req, res) => {
+  try {
+    // Find the product by ID
+    const product = await Product.findById(req.params.id);
+    
+    if (!product) {
+      return res.status(404).json({ message: 'Product not found' });
+    }
+    
+    // Check if the product already has similar products
+    if (product.similarProducts && product.similarProducts.length > 0) {
+      // Return existing similar products with all details
+      return res.json({
+        productId: product._id,
+        productName: product.name,
+        similarProductsCount: product.similarProducts.length,
+        similarProducts: product.similarProducts
+      });
+    }
+    
+    // If no similar products yet, find them
+    const similarProducts = await findSimilarProducts(product.name, product.price);
+    
+    // Update the product with found similar products
+    product.similarProducts = similarProducts;
+    await product.save();
+    
+    // Return the full detailed response
+    res.json({
+      productId: product._id,
+      productName: product.name,
+      similarProductsCount: similarProducts.length,
+      similarProducts: similarProducts
+    });
+    
+  } catch (error) {
+    console.error('Error finding similar products:', error);
+    res.status(500).json({ 
+      message: 'Error finding similar products',
+      error: error.message 
+    });
+  }
+});
+
+// Get detailed similar products by direct search (no need to save)
+router.get('/similar-products/details', async (req, res) => {
+  try {
+    const { name, price } = req.query;
+    
+    // Validate required parameters
+    if (!name) {
+      return res.status(400).json({ 
+        message: 'Product name is required in query parameters' 
+      });
+    }
+    
+    // Parse price or use default if not provided
+    const productPrice = price ? parseFloat(price) : 100;
+    
+    console.log(`Searching for detailed similar products to "${name}" with price around ${productPrice}`);
+    
+    // Find similar products with all details
+    const similarProducts = await findSimilarProducts(name, productPrice);
+    
+    // Return comprehensive response with all details
+    res.json({
+      query: {
+        productName: name,
+        productPrice: productPrice
+      },
+      count: similarProducts.length,
+      similarProducts: similarProducts.map(product => ({
+        name: product.name,
+        price: product.price,
+        source: product.source,
+        imageUrl: product.imageUrl,
+        link: product.link,
+        ingredients: product.ingredients || [],
+        packaging: {
+          materials: product.packaging?.materials || [],
+          recyclable: product.packaging?.recyclable || false
+        }
+      }))
+    });
+  } catch (error) {
+    console.error('Error finding similar products details:', error);
+    res.status(500).json({ 
+      message: 'Error finding similar products details',
+      error: error.message 
+    });
+  }
+});
+
 module.exports = router; 
