@@ -30,11 +30,24 @@ const productSchema = new mongoose.Schema({
       max: 100
     },
     details: {
-      manufacturing: Number,
-      transportation: Number,
-      packaging: Number,
-      lifecycle: Number
-    }
+      manufacturing: {
+        score: Number,
+        explanation: String
+      },
+      transportation: {
+        score: Number,
+        explanation: String
+      },
+      packaging: {
+        score: Number,
+        explanation: String
+      },
+      lifecycle: {
+        score: Number,
+        explanation: String
+      }
+    },
+    overallExplanation: String
   },
   similarProducts: [{
     name: String,
