@@ -14,6 +14,11 @@ const productSchema = new mongoose.Schema({
     type: Number,
     required: true
   },
+  midnightId: {
+    type: String,
+    required: true,
+    unique: true
+  },
   ingredients: [{
     type: String,
     required: true
