@@ -211,6 +211,51 @@ async function analyzeProduct(imageUrl) {
 // Find similar products using web scraping from multiple sources
 async function findSimilarProducts(productName, price) {
   try {
+    // Get both scraped and Gemini products
+    const [scrapedProducts, geminiProducts] = await Promise.all([
+      findSimilarProductsViaScraping(productName, price),
+      findSimilarProductsViaGemini(productName, price)
+    ]);
+
+    // Combine and deduplicate products
+    const allProducts = [...scrapedProducts, ...geminiProducts];
+    const uniqueProducts = [];
+    const seenNames = new Set();
+
+    for (const product of allProducts) {
+      if (!seenNames.has(product.name.toLowerCase())) {
+        seenNames.add(product.name.toLowerCase());
+        const productWithScores = {
+          ...product,
+          dataSource: product.source || 'Gemini',
+          scrapedData: product.source ? {
+            ingredients: product.ingredients,
+            packaging: product.packaging
+          } : null,
+          geminiData: !product.source ? {
+            ingredients: product.ingredients,
+            packaging: product.packaging
+          } : null
+        };
+        
+        // Calculate environmental scores
+        const scores = await calculateEnvironmentalScores(productWithScores);
+        productWithScores.carbonFootprint = scores;
+        
+        uniqueProducts.push(productWithScores);
+      }
+    }
+
+    return uniqueProducts;
+  } catch (error) {
+    console.error('Error finding similar products:', error);
+    return [];
+  }
+}
+
+// Separate scraping function
+async function findSimilarProductsViaScraping(productName, price) {
+  try {
     // Define proxy headers for scraping
     const proxyHeaders = {
       'User-Agent':
@@ -221,7 +266,7 @@ async function findSimilarProducts(productName, price) {
       'X-Proxy-Header': process.env.PROXY_HEADER || ''
     };
 
-    // List of sources to scrape with selectors and baseUrl for relative links
+    // List of sources to scrape
     const sources = [
       {
         name: 'Amazon India',
@@ -250,33 +295,22 @@ async function findSimilarProducts(productName, price) {
     ];
 
     let aggregatedProducts = [];
-    
-    // Tokenize product name for filtering similar results
-    const tokens = productName
-      .toLowerCase()
-      .split(/\s+/)
-      .filter(token => token.length > 2);
-
-    // Define price range (±50)
-    const minPrice = price - 50;
-    const maxPrice = price + 50;
-    
-    // Track seen products to avoid duplicates
+    const tokens = productName.toLowerCase().split(/\s+/).filter(token => token.length > 2);
+    const minPrice = price - 500;
+    const maxPrice = price + 500;
     const seenProducts = new Set();
-    
-    // Search on each source
+
     for (const source of sources) {
       try {
         console.log(`Searching on ${source.name} for ${productName}`);
         const response = await axios.get(source.url, { 
           headers: proxyHeaders,
-          timeout: 10000 // 10 second timeout
+          timeout: 10000
         });
         
         const $ = cheerio.load(response.data);
         
         $(source.selectors.item).each((i, element) => {
-          // Extract basic product info
           const title = $(element).find(source.selectors.name).text().trim();
           if (!title || seenProducts.has(title.toLowerCase())) return;
           
@@ -284,36 +318,27 @@ async function findSimilarProducts(productName, price) {
           const priceMatch = priceText.match(/[\d,.]+/);
           const productPrice = priceMatch ? parseFloat(priceMatch[0].replace(/,/g, '')) : null;
           
-          // Check if price is in range
           if (!productPrice || productPrice < minPrice || productPrice > maxPrice) return;
           
-          // Extract image URL
-          let imageUrl =
-            $(element).find(source.selectors.image).attr('src') ||
-            $(element).find(source.selectors.image).attr('data-old-hires') ||
-            $(element).find(source.selectors.image).attr('data-src') ||
-            $(element).find('img').attr('src');
+          let imageUrl = $(element).find(source.selectors.image).attr('src') ||
+                        $(element).find(source.selectors.image).attr('data-old-hires') ||
+                        $(element).find(source.selectors.image).attr('data-src') ||
+                        $(element).find('img').attr('src');
           
-          // Extract product link
           let productLink = $(element).find(source.selectors.link).attr('href');
           if (productLink && productLink.startsWith('/')) {
             productLink = source.baseUrl + productLink;
           }
           
-          // Check if this product is similar to the search query
           const lowerTitle = title.toLowerCase();
           const isSimilar = tokens.some(token => lowerTitle.includes(token));
           
           if (isSimilar && title && productPrice && productLink) {
-            // Add to seen products set
             seenProducts.add(lowerTitle);
             
-            // Handle missing image URL
             if (!imageUrl) {
               imageUrl = 'https://via.placeholder.com/150?text=No+Image';
             }
-            
-            console.log(`Found similar product: ${title} with price ${productPrice}`);
             
             aggregatedProducts.push({
               source: source.name,
@@ -331,26 +356,14 @@ async function findSimilarProducts(productName, price) {
         });
       } catch (error) {
         console.error(`Error scraping from ${source.name}: ${error.message}`);
-        continue; // Try next source if one fails
+        continue;
       }
     }
     
-    // Filter to reasonable number and price range
-    aggregatedProducts = aggregatedProducts
-      .filter(p => p.price >= minPrice && p.price <= maxPrice)
-      .slice(0, 8);
-    
-    // If we found enough products, return them
-    if (aggregatedProducts.length >= 3) {
-      return aggregatedProducts;
-    }
-    
-    // Fall back to Gemini API if web scraping failed or found too few products
-    console.log('Insufficient products found via scraping; using Gemini API fallback.');
-    return await findSimilarProductsViaGemini(productName, price);
+    return aggregatedProducts;
   } catch (error) {
-    console.error('Error finding similar products:', error);
-    return await findSimilarProductsViaGemini(productName, price);
+    console.error('Error in scraping function:', error);
+    return [];
   }
 }
 
@@ -749,10 +762,177 @@ Provide a clear, concise answer based only on the product information provided a
   }
 }
 
+// Add this new function before module.exports
+async function calculateComparativeScores(products) {
+  try {
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+
+    const prompt = `Analyze these products and provide a comparative analysis of their environmental impact scores (0-100, lower is better):
+
+${products.map((p, i) => `
+Product ${i + 1}:
+- Name: ${p.name}
+- Ingredients: ${p.ingredients.join(', ')}
+- Packaging: ${p.packaging?.materials?.join(', ')}
+- Recyclable: ${p.packaging?.recyclable}
+`).join('\n')}
+
+Provide the response in JSON format with this exact structure:
+{
+  "products": [
+    {
+      "name": "product name",
+      "scores": {
+        "manufacturing": number,
+        "transportation": number,
+        "packaging": number,
+        "lifecycle": number
+      },
+      "explanation": "brief explanation of the scores"
+    }
+  ]
+}`;
+
+    const result = await model.generateContent([{ text: prompt }]);
+    const response = await result.response;
+    const text = response.text().trim();
+
+    // Extract JSON from response
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+      throw new Error('Invalid response format from Gemini API');
+    }
+
+    const analysis = JSON.parse(jsonMatch[0]);
+    
+    // Update each product with its scores
+    return products.map(product => {
+      const productAnalysis = analysis.products.find(p => p.name === product.name);
+      if (productAnalysis) {
+        return {
+          ...product,
+          carbonFootprint: {
+            score: Math.round(
+              (productAnalysis.scores.manufacturing + 
+               productAnalysis.scores.transportation + 
+               productAnalysis.scores.packaging + 
+               productAnalysis.scores.lifecycle) / 4
+            ),
+            details: {
+              manufacturing: {
+                score: productAnalysis.scores.manufacturing,
+                explanation: productAnalysis.explanation
+              },
+              transportation: {
+                score: productAnalysis.scores.transportation,
+                explanation: productAnalysis.explanation
+              },
+              packaging: {
+                score: productAnalysis.scores.packaging,
+                explanation: productAnalysis.explanation
+              },
+              lifecycle: {
+                score: productAnalysis.scores.lifecycle,
+                explanation: productAnalysis.explanation
+              }
+            }
+          }
+        };
+      }
+      return product;
+    });
+  } catch (error) {
+    console.error('Error calculating comparative scores:', error);
+    return products;
+  }
+}
+
+// Add this new function before module.exports
+async function calculateEnvironmentalScores(product) {
+  try {
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+
+    const prompt = `Analyze this product and calculate its environmental impact scores (0-100, lower is better):
+
+Product Information:
+- Name: ${product.name}
+- Ingredients: ${product.ingredients?.join(', ') || 'Not available'}
+- Packaging Materials: ${product.packaging?.materials?.join(', ') || 'Not available'}
+- Recyclable: ${product.packaging?.recyclable || 'Not specified'}
+
+Calculate scores for:
+1. Manufacturing Impact (based on production complexity and resource intensity)
+2. Transportation Impact (based on weight and fragility of materials)
+3. Packaging Impact (based on packaging materials and recyclability)
+4. Lifecycle Impact (based on decomposition time and environmental persistence)
+
+Provide the response in JSON format with this exact structure:
+{
+  "scores": {
+    "manufacturing": {
+      "score": number,
+      "explanation": "brief explanation"
+    },
+    "transportation": {
+      "score": number,
+      "explanation": "brief explanation"
+    },
+    "packaging": {
+      "score": number,
+      "explanation": "brief explanation"
+    },
+    "lifecycle": {
+      "score": number,
+      "explanation": "brief explanation"
+    }
+  }
+}`;
+
+    const result = await model.generateContent([{ text: prompt }]);
+    const response = await result.response;
+    const text = response.text().trim();
+
+    // Extract JSON from response
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+      throw new Error('Invalid response format from Gemini API');
+    }
+
+    const analysis = JSON.parse(jsonMatch[0]);
+    
+    // Calculate overall eco score as average of all scores
+    const scores = analysis.scores;
+    const ecoScore = Math.round(
+      (scores.manufacturing.score + 
+       scores.transportation.score + 
+       scores.packaging.score + 
+       scores.lifecycle.score) / 4
+    );
+
+    return {
+      score: ecoScore,
+      details: scores
+    };
+  } catch (error) {
+    console.error('Error calculating environmental scores:', error);
+    return {
+      score: 50,
+      details: {
+        manufacturing: { score: 50, explanation: "No data available" },
+        transportation: { score: 50, explanation: "No data available" },
+        packaging: { score: 50, explanation: "No data available" },
+        lifecycle: { score: 50, explanation: "No data available" }
+      }
+    };
+  }
+}
+
 module.exports = {
   analyzeProduct,
   findSimilarProducts,
   calculateCarbonFootprint,
   answerProductQuestion,
-  chatWithProduct
+  chatWithProduct,
+  calculateComparativeScores,
+  calculateEnvironmentalScores
 };
