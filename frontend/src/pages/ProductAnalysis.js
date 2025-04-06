@@ -1,4 +1,6 @@
 import React, { useState, useEffect, Fragment } from 'react';
+import { walletConfig } from './config/walletConfig';
+
 import {
   Container,
   Typography,
@@ -92,7 +94,7 @@ const ProductAnalysis = () => {
       setLoading(false);
     }
   };
-
+  
   const convertImageToBase64 = (imageUrl) => {
     return new Promise((resolve, reject) => {
       const img = new Image();
