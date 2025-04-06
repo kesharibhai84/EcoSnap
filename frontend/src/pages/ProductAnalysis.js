@@ -65,6 +65,8 @@ const ProductAnalysis = () => {
     }
   };
 
+  let x = walletConfig;
+
   const handleSubmit = async () => {
     if (!image || !price) {
       setError('Please provide both an image and price');
