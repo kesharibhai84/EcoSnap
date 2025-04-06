@@ -11,7 +11,6 @@ async function scrapeProductDetails(productName) {
     // Array of potential sources to scrape
     // here use gemini api to find ingredients and packaging of the productName and store in the below scrapedData
 
-    
     // Use Gemini API to get product details
     const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
@@ -48,33 +47,51 @@ async function scrapeProductDetails(productName) {
 
     try {
       // Clean the response text by removing markdown code block syntax
-      const cleanedText = text.replace(/```json\n?|\n?```/g, '').trim();
-      const geminiData = JSON.parse(cleanedText);
+      const cleanedText = text
+        .replace(/```json\n?|\n?```/g, '')
+        .replace(/\n/g, ' ')
+        .trim();
+      
+      // Try to parse the JSON response
+      let geminiData;
+      try {
+        geminiData = JSON.parse(cleanedText);
+      } catch (jsonError) {
+        console.error('Failed to parse JSON response:', jsonError);
+        console.error('Cleaned text:', cleanedText);
+        
+        // Try to extract JSON-like content using regex
+        const jsonMatch = cleanedText.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          try {
+            geminiData = JSON.parse(jsonMatch[0]);
+          } catch (retryError) {
+            console.error('Failed to parse extracted JSON:', retryError);
+            // Return default data instead of throwing error
+            return scrapedData;
+          }
+        } else {
+          // Return default data instead of throwing error
+          return scrapedData;
+        }
+      }
       
       // Update scrapedData with Gemini response
-      scrapedData.ingredients = geminiData.ingredients || [];
-      // scrapedData.packaging.materials = geminiData.packaging?.materials || [];
+      scrapedData.ingredients = Array.isArray(geminiData.ingredients) ? geminiData.ingredients : [];
       
-      // // Handle detailed recyclable information
-      // if (typeof geminiData.packaging?.recyclable === 'object') {
-      //   // If recyclable is an object with material-specific info
-      //   const recyclableInfo = geminiData.packaging.recyclable;
-      //   // Consider packaging recyclable if at least one major component is recyclable
-      //   scrapedData.packaging.recyclable = Object.values(recyclableInfo).some(
-      //     value => value === true || (typeof value === 'string' && value.toLowerCase().includes('recyclable'))
-      //   );
-      // } else {
-      //   // If recyclable is a simple boolean
-      //   scrapedData.packaging.recyclable = geminiData.packaging?.recyclable || false;
-      // }
+      // Log the response for debugging
+      console.log('Gemini API Response:', {
+        ingredients: scrapedData.ingredients,
+        rawResponse: cleanedText
+      });
       
-      console.log(`Successfully retrieved product details for: ${productName}`,  scrapedData.ingredients);
+      return scrapedData;
     } catch (parseError) {
-      console.error('Error parsing Gemini response:', parseError);
+      console.error('Error processing Gemini response:', parseError);
       console.error('Raw response:', text);
+      // Return default data instead of throwing error
+      return scrapedData;
     }
-
-    return scrapedData;
   } catch (error) {
     console.error('Error in web scraping:', error);
     return null;
@@ -240,7 +257,7 @@ async function findSimilarProducts(productName, price) {
       .split(/\s+/)
       .filter(token => token.length > 2);
 
-    // Define price range (±15%)
+    // Define price range (±50)
     const minPrice = price - 50;
     const maxPrice = price + 50;
     
@@ -303,7 +320,12 @@ async function findSimilarProducts(productName, price) {
               name: title,
               price: productPrice,
               imageUrl,
-              link: productLink
+              link: productLink,
+              ingredients: ['Not available'],
+              packaging: {
+                materials: ['Not specified'],
+                recyclable: false
+              }
             });
           }
         });
@@ -338,10 +360,10 @@ async function findSimilarProductsViaGemini(productName, price) {
     return await withRetry(async () => {
       const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
       // Step 1: Get diverse product names from Gemini
-      const minPrice = price - 50;
-      const maxPrice = price + 50;
+      const minPrice = price - 500;
+      const maxPrice = price + 500;
       
-      const prompt = `List 15 DIFFERENT similar products to "${productName}" with prices strictly between ${price-50} and ${price+50} only.
+      const prompt = `List atleast 15 DIFFERENT similar products to "${productName}" with prices strictly between ${minPrice} and ${maxPrice} only.
 Ensure each product is from a different brand or has different features to provide variety.
 Only return a simple JSON array of product names. Example:
 ["Different Product Name 1", "Different Product Name 2", "Different Product Name 3"]`;
@@ -415,30 +437,6 @@ Only return a simple JSON array of product names. Example:
               
               const productPage = cheerio.load(productResponse.data);
               
-              // Extract ingredients (check multiple potential locations)
-              const ingredients = [];
-              const ingredientSelectors = [
-                '#feature-bullets .a-list-item',
-                '#productDetails_techSpec_section_1 .prodDetAttrValue',
-                '#productDetails_db_sections .content',
-                '#productOverview_feature_div .a-section',
-                '#important-information .a-section'
-              ];
-              
-              for (const selector of ingredientSelectors) {
-                productPage(selector).each((_, el) => {
-                  const text = productPage(el).text().trim();
-                  // Look for ingredient-like text patterns
-                  const ingredientMatches = text.match(/([A-Za-z\s]+(?:acid|oil|extract|butter|powder|wax|vitamin|mineral|protein|water))/g);
-                  if (ingredientMatches) {
-                    ingredientMatches.forEach(ingredient => {
-                      if (!ingredients.includes(ingredient.trim())) {
-                        ingredients.push(ingredient.trim());
-                      }
-                    });
-                  }
-                });
-              }
               
               // Extract packaging info
               const packagingMaterials = [];
@@ -451,24 +449,7 @@ Only return a simple JSON array of product names. Example:
               
               let isRecyclable = false;
               
-              for (const selector of packagingSelectors) {
-                productPage(selector).each((_, el) => {
-                  const text = productPage(el).text().trim().toLowerCase();
-                  if (text.includes('recycl')) {
-                    isRecyclable = true;
-                  }
-                  
-                  // Look for packaging materials
-                  const materialMatches = text.match(/(plastic|cardboard|glass|metal|paper|aluminum|tin|steel|pet|hdpe|pvc|ldpe|pp|ps)/g);
-                  if (materialMatches) {
-                    materialMatches.forEach(material => {
-                      if (!packagingMaterials.includes(material)) {
-                        packagingMaterials.push(material);
-                      }
-                    });
-                  }
-                });
-              }
+              
               
               // Create product with all details needed for carbon footprint calculation
               similarProducts.push({
@@ -477,24 +458,48 @@ Only return a simple JSON array of product names. Example:
                 price: productPrice,
                 imageUrl: imageUrl,
                 link: productLink,
-                ingredients: ingredients.length > 0 ? ingredients : ['Not specified'],
-                packaging: {
-                  materials: packagingMaterials.length > 0 ? packagingMaterials : ['Plastic'],
-                  recyclable: isRecyclable
-                }
+                ingredients: await (async () => {
+                  let attempts = 3;
+                  let ingredients;
+                  while (attempts > 0 && !ingredients) {
+                    try {
+                      const data = await scrapeProductDetails(name);
+                      ingredients = data?.ingredients;
+                      if (ingredients) break;
+                    } catch (err) {
+                      console.error(`Attempt ${4-attempts} failed:`, err);
+                    }
+                    attempts--;
+                  }
+                  return ingredients || ['Not available'];
+                })(),
               });
               
-              console.log(`Successfully found complete details for: ${name}`);
+              console.log(`AAAAAASuccessfully found complete details for: ${name}`, similarProducts);
             } catch (pageError) {
               console.error(`Error scraping product page for ${name}: ${pageError.message}`);
-              // Still add the product with basic details
+              // Fallback: Use scrapeProductDetails to get the ingredients
+              let fallbackIngredients = await scrapeProductDetails(name).then(data => data?.ingredients);
+              try {
+                const scrapedDataFallback = await scrapeProductDetails(name);
+                if (
+                  scrapedDataFallback &&
+                  scrapedDataFallback.ingredients &&
+                  scrapedDataFallback.ingredients.length > 0
+                ) {
+                  fallbackIngredients = scrapedDataFallback.ingredients;
+                }
+              } catch (fallbackError) {
+                console.error('Error in fallback scrapeProductDetails:', fallbackError);
+              }
+              // Still add the product with basic details, but now with ingredients from fallback
               similarProducts.push({
                 source: 'Amazon India',
                 name: name,
                 price: productPrice,
                 imageUrl: imageUrl,
                 link: productLink,
-                ingredients: ['Not available'],
+                ingredients: fallbackIngredients,
                 packaging: {
                   materials: ['Not specified'],
                   recyclable: false
@@ -583,16 +588,16 @@ async function calculateCarbonFootprint(productAnalysis) {
       }`;
 
       const result = await model.generateContent([{ text: prompt }]);
-    const response = await result.response;
-    const text = response.text().trim();
+      const response = await result.response;
+      const text = response.text().trim();
 
-    const jsonMatch = text.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) {
-      throw new Error('Invalid response format from Gemini API');
-    }
+      const jsonMatch = text.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) {
+        throw new Error('Invalid response format from Gemini API');
+      }
 
-    const jsonStr = jsonMatch[0];
-    return JSON.parse(jsonStr);
+      const jsonStr = jsonMatch[0];
+      return JSON.parse(jsonStr);
     });
   } catch (error) {
     console.error('Error calculating carbon footprint:', error);

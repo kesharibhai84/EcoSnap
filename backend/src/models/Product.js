@@ -58,7 +58,13 @@ const productSchema = new mongoose.Schema({
     name: String,
     price: Number,
     imageUrl: String,
-    carbonFootprint: Number
+    ingredients: [String],
+    packaging: {
+      materials: [String],
+      recyclable: Boolean
+    },
+    source: String,
+    link: String
   }],
   createdAt: {
     type: Date,

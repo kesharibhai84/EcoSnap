@@ -44,8 +44,17 @@ router.post('/analyze', async (req, res) => {
       imageUrl,
       price,
       midnightId: midnightResult.midnightId,
-      similarProducts,
-      ingredients
+      similarProducts: similarProducts.map(product => ({
+        name: product.name,
+        price: product.price,
+        imageUrl: product.imageUrl,
+        ingredients: product.ingredients,
+        packaging: product.packaging,
+        source: product.source,
+        link: product.link
+      })),
+      ingredients: productAnalysis.ingredients,
+      packagingDetails: productAnalysis.packaging
     });
     
     await product.save();
@@ -149,7 +158,15 @@ router.get('/:id/similar-products', async (req, res) => {
     const similarProducts = await findSimilarProducts(product.name, product.price);
     
     // Update the product with found similar products
-    product.similarProducts = similarProducts;
+    product.similarProducts = similarProducts.map(product => ({
+      name: product.name,
+      price: product.price,
+      imageUrl: product.imageUrl,
+      ingredients: product.ingredients,
+      packaging: product.packaging,
+      source: product.source,
+      link: product.link
+    }));
     await product.save();
     
     // Return the full detailed response
@@ -157,7 +174,7 @@ router.get('/:id/similar-products', async (req, res) => {
       productId: product._id,
       productName: product.name,
       similarProductsCount: similarProducts.length,
-      similarProducts: similarProducts
+      similarProducts: product.similarProducts
     });
     
   } catch (error) {
