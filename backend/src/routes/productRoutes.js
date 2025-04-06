@@ -9,6 +9,11 @@ router.post('/analyze', async (req, res) => {
   try {
     const { imageUrl, price } = req.body;
     
+    // Validate input
+    if (!imageUrl || !price) {
+      return res.status(400).json({ message: 'Image URL and price are required' });
+    }
+    
     // Analyze product using Gemini API
     const productAnalysis = await analyzeProduct(imageUrl);
     
@@ -18,9 +23,7 @@ router.post('/analyze', async (req, res) => {
     // Calculate carbon footprint
     const carbonFootprint = await calculateCarbonFootprint(productAnalysis);
 
-    const ingredients = productAnalysis.ingredients;
-    
-    // Store sensitive data in Midnight
+    // Prepare sensitive data for Midnight storage
     const sensitiveData = {
       ingredients: productAnalysis.ingredients,
       packagingDetails: productAnalysis.packaging,
@@ -36,6 +39,7 @@ router.post('/analyze', async (req, res) => {
       }
     };
 
+    // Store sensitive data in Midnight
     const midnightResult = await midnightService.storeProductData(sensitiveData);
     
     // Create new product with Midnight reference
@@ -65,7 +69,10 @@ router.post('/analyze', async (req, res) => {
     });
   } catch (error) {
     console.error('Error analyzing product:', error);
-    res.status(500).json({ message: 'Error analyzing product' });
+    res.status(500).json({ 
+      message: 'Error analyzing product',
+      error: error.message 
+    });
   }
 });
 
@@ -90,12 +97,27 @@ router.get('/:id', async (req, res) => {
     // Retrieve sensitive data from Midnight
     const sensitiveData = await midnightService.retrieveProductData(product.midnightId);
     
+    // Verify the data
+    const isVerified = await midnightService.verifyProductData(
+      product.midnightId,
+      req.query.proof
+    );
+
+    if (!isVerified) {
+      return res.status(403).json({ message: 'Data verification failed' });
+    }
+    
     res.json({
       ...product.toObject(),
-      ...sensitiveData
+      ...sensitiveData,
+      verified: true
     });
   } catch (error) {
-    res.status(500).json({ message: 'Error fetching product' });
+    console.error('Error fetching product:', error);
+    res.status(500).json({ 
+      message: 'Error fetching product',
+      error: error.message 
+    });
   }
 });
 

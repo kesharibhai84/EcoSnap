@@ -1,67 +1,93 @@
 const crypto = require('crypto');
+const axios = require('axios');
+const { walletConfig } = require('../../config/walletConfig');
 
 class MidnightService {
     constructor() {
         this.encryptionKey = process.env.ENCRYPTION_KEY || 'your-secret-key';
+        this.config = walletConfig;
     }
 
     async storeProductData(productData) {
         try {
-            // Simulate encryption and proof generation
+            // Encrypt the data
             const encryptedData = this.encryptData(productData);
+            
+            // Generate proof
             const proof = this.generateProof(encryptedData);
             
-            // In a real implementation, this would be stored on the blockchain
-            const midnightId = crypto.randomBytes(16).toString('hex');
+            // Store on Midnight network
+            const response = await axios.post(
+                `${this.config.api.baseUrl}${this.config.api.endpoints.store}`,
+                {
+                    data: encryptedData,
+                    proof: proof,
+                    contractAddress: this.config.contracts.productRegistry
+                },
+                {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${process.env.MIDNIGHT_API_KEY}`
+                    }
+                }
+            );
 
             return {
-                midnightId,
-                proof,
-                encryptedData // In real implementation, this would be stored on-chain
+                midnightId: response.data.midnightId,
+                proof: proof,
+                encryptedData: encryptedData
             };
         } catch (error) {
-            console.error('Error storing data:', error);
-            throw new Error('Failed to store data');
+            console.error('Error storing data on Midnight:', error);
+            throw new Error('Failed to store data on Midnight network');
         }
     }
 
     async verifyProductData(midnightId, proof) {
         try {
-            // In a real implementation, this would verify the proof on-chain
-            return true; // Simulating successful verification
+            const response = await axios.post(
+                `${this.config.api.baseUrl}${this.config.api.endpoints.verify}`,
+                {
+                    midnightId,
+                    proof,
+                    contractAddress: this.config.contracts.productRegistry
+                },
+                {
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${process.env.MIDNIGHT_API_KEY}`
+                    }
+                }
+            );
+
+            return response.data.verified;
         } catch (error) {
-            console.error('Error verifying data:', error);
-            throw new Error('Failed to verify data');
+            console.error('Error verifying data on Midnight:', error);
+            throw new Error('Failed to verify data on Midnight network');
         }
     }
 
     async retrieveProductData(midnightId) {
         try {
-            // In a real implementation, this would retrieve from the blockchain
-            // For now, we'll return a mock response
-            return {
-                ingredients: ['Mock ingredient 1', 'Mock ingredient 2'],
-                packagingDetails: {
-                    materials: ['Paper', 'Plastic'],
-                    recyclable: true
-                },
-                carbonFootprint: {
-                    score: 75,
-                    details: {
-                        manufacturing: { score: 80, explanation: 'Efficient manufacturing' },
-                        transportation: { score: 70, explanation: 'Local sourcing' },
-                        packaging: { score: 85, explanation: 'Eco-friendly packaging' },
-                        lifecycle: { score: 65, explanation: 'Good lifecycle management' }
+            const response = await axios.get(
+                `${this.config.api.baseUrl}${this.config.api.endpoints.retrieve}/${midnightId}`,
+                {
+                    headers: {
+                        'Authorization': `Bearer ${process.env.MIDNIGHT_API_KEY}`
                     }
                 }
-            };
+            );
+
+            // Decrypt the data
+            const decryptedData = this.decryptData(response.data.encryptedData);
+            return decryptedData;
         } catch (error) {
-            console.error('Error retrieving data:', error);
-            throw new Error('Failed to retrieve data');
+            console.error('Error retrieving data from Midnight:', error);
+            throw new Error('Failed to retrieve data from Midnight network');
         }
     }
 
-    // Helper methods for demonstration
+    // Helper methods
     encryptData(data) {
         const cipher = crypto.createCipher('aes-256-cbc', this.encryptionKey);
         let encrypted = cipher.update(JSON.stringify(data), 'utf8', 'hex');
@@ -69,8 +95,14 @@ class MidnightService {
         return encrypted;
     }
 
+    decryptData(encryptedData) {
+        const decipher = crypto.createDecipher('aes-256-cbc', this.encryptionKey);
+        let decrypted = decipher.update(encryptedData, 'hex', 'utf8');
+        decrypted += decipher.final('utf8');
+        return JSON.parse(decrypted);
+    }
+
     generateProof(data) {
-        // In a real implementation, this would generate a zero-knowledge proof
         return crypto.createHash('sha256').update(data).digest('hex');
     }
 }
